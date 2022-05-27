@@ -17,6 +17,9 @@
 #include <list>
 #include "gettext.h"
 
+#include <QLocalServer>
+#include <QLocalSocket>
+
 using namespace std;
 using namespace cnoid;
 
@@ -92,6 +95,13 @@ public:
     
     virtual void keyPressEvent(QKeyEvent* event);
     virtual void insertFromMimeData(const QMimeData* source);
+
+  QLocalServer *qserver;
+  QLocalSocket *qsocket;
+
+  void connectSocket();
+  void readSocket();
+  void execCommand(QString &com);
 };
 
 }
@@ -107,6 +117,7 @@ void PythonConsoleOut::setConsole(PythonConsoleView::Impl* console)
 
 void PythonConsoleOut::write(std::string const& text)
 {
+  std::cerr << "write: " << text << std::endl;
     console->put(QString(text.c_str()));
     console->sigOutput(text);
 }
@@ -120,6 +131,7 @@ void PythonConsoleIn::setConsole(PythonConsoleView::Impl* console)
 
 python::object PythonConsoleIn::readline()
 {
+  std::cerr << "readline" << std::endl;
     //! \todo release the GIL inside this function
     return python::str(console->getInputFromConsoleIn());
 }
@@ -143,7 +155,7 @@ PythonConsoleView::PythonConsoleView()
 
 PythonConsoleView::Impl::Impl(PythonConsoleView* self)
     : self(self),
-      pythonPlugin(PythonPlugin::instance())
+      pythonPlugin(PythonPlugin::instance()), qserver(nullptr), qsocket(nullptr)
 {
     isConsoleInMode = false;
     inputColumnOffset = 0;
@@ -210,8 +222,25 @@ PythonConsoleView::Impl::Impl(PythonConsoleView* self)
     
     prompt = ">>> ";
     putPrompt();
-}
 
+    ////
+    qserver = new QLocalServer();
+    qserver->setMaxPendingConnections(1);
+    if (! qserver->listen(".choreonoid_console_server") ) {
+      if ( !QLocalServer::removeServer(".choreonoid_console_server") ) {
+        std::cerr << "QLocalServer remove error! / " << qserver->errorString().toStdString() << std::endl;
+        qserver = nullptr;
+        return;
+      } else {
+        if (! qserver->listen(".choreonoid_console_server") ) {
+          std::cerr << "QLocalServer open error! / " << qserver->errorString().toStdString() << std::endl;
+          qserver = nullptr;
+          return;
+        }
+      }
+    }
+    connect(qserver, &QLocalServer::newConnection, this, &PythonConsoleView::Impl::connectSocket);
+}
 
 PythonConsoleView::~PythonConsoleView()
 {
@@ -222,7 +251,11 @@ PythonConsoleView::~PythonConsoleView()
 
 PythonConsoleView::Impl::~Impl()
 {
-
+    if (!!qsocket) delete qsocket;
+    if (!!qserver) {
+      QLocalServer::removeServer(".choreonoid_console_server");
+      delete qserver;
+    }
 }
 
 
@@ -240,9 +273,25 @@ void PythonConsoleView::Impl::setPrompt(const char* newPrompt)
 
 void PythonConsoleView::Impl::put(const QString& message)
 {
+  std::cerr << "put" << std::endl;
     moveCursor(QTextCursor::End);
     insertPlainText(message);
     moveCursor(QTextCursor::End);
+
+    if (!!qsocket) {
+      std::cerr << "put qs|";
+      QByteArray block;
+      QDataStream out(&block, QIODevice::WriteOnly);
+      out.setVersion(QDataStream::Qt_5_1);
+      //out << (qint64)0;
+      out << message.toUtf8();
+      //out.device()->seek(0);
+      //out << (qint64)(block.size() - sizeof(qint64));
+      qsocket->write(block);
+      qsocket->flush();
+      std::cerr << message.toStdString();
+      std::cerr << "|put qs e" << std::endl;
+    }
 }
 
 
@@ -255,6 +304,7 @@ void PythonConsoleView::Impl::putln(const QString& message)
 
 void PythonConsoleView::inputCommand(const std::string& command)
 {
+  std::cerr << "inputCommand: " << command << std::endl;
     impl->put(command.c_str());
     impl->execCommand();
 }
@@ -276,6 +326,7 @@ void PythonConsoleView::Impl::putPrompt()
 
 void PythonConsoleView::Impl::execCommand()
 {
+    std::cerr << "exec command" << std::endl;
     python::gil_scoped_acquire lock;
     
     orgStdout = sys.attr("stdout");
@@ -526,6 +577,8 @@ string PythonConsoleView::Impl::getInputFromConsoleIn()
     sys.attr("stderr") = orgStderr;
     sys.attr("stdin") = orgStdin;
 
+    std::cerr << ">getInput.." << std::endl;
+
     int result;
 
     Py_BEGIN_ALLOW_THREADS
@@ -542,6 +595,8 @@ string PythonConsoleView::Impl::getInputFromConsoleIn()
     sys.attr("stderr") = consoleOut;
     sys.attr("stdin") = consoleIn;
 
+    std::cerr << "getInput..>" << std::endl;
+    
     if(result == 0){
         return stringFromConsoleIn + "\n";
     } else {
@@ -692,4 +747,76 @@ void PythonConsoleView::Impl::insertFromMimeData(const QMimeData* source)
             }
         }
     }
+}
+
+////
+void PythonConsoleView::Impl::connectSocket()
+{
+  std::cerr << "conn" << std::endl;
+
+  qsocket = qserver->nextPendingConnection();
+  connect(qsocket, &QLocalSocket::disconnected,
+          qsocket, &QLocalSocket::deleteLater);
+  connect(qsocket, &QLocalSocket::readyRead,
+          this, &PythonConsoleView::Impl::readSocket);
+}
+
+void PythonConsoleView::Impl::readSocket()
+{
+  std::cerr << "read" << std::endl;
+
+  QDataStream in(qsocket);
+  qint64 blockSize;
+  in.setVersion(QDataStream::Qt_5_1);
+  int num_available = qsocket->bytesAvailable();
+  std::cerr << "read 1 / " << num_available << std::endl;
+
+  //if(num_available < sizeof(qint64)) return;
+
+  while(!in.atEnd()) {
+    // gets data from socket
+    QByteArray data;
+    in >> data;
+
+    QString msg(data);
+
+    std::cerr << "read 2 / " << msg.toStdString() << std::endl;
+
+    execCommand(msg);
+  }
+}
+
+void PythonConsoleView::Impl::execCommand(QString &com)
+{
+  std::cerr << "exec command: " << com.toStdString() << std::endl;
+  //
+  moveCursor(QTextCursor::End);
+  insertPlainText(com + "\n");
+  moveCursor(QTextCursor::End);
+  //
+    python::gil_scoped_acquire lock;
+
+    orgStdout = sys.attr("stdout");
+    orgStderr = sys.attr("stderr");
+    orgStdin = sys.attr("stdin");
+
+    sys.attr("stdout") = consoleOut;
+    sys.attr("stderr") = consoleOut;
+    sys.attr("stdin") = consoleIn;
+
+    if(interpreter.attr("push")(com.toStdString()).cast<bool>()){
+        setPrompt("... ");
+    } else {
+        setPrompt(">>> ");
+    }
+
+    if(PyErr_Occurred()){
+        PyErr_Print();
+    }
+
+    sys.attr("stdout") = orgStdout;
+    sys.attr("stderr") = orgStderr;
+    sys.attr("stdin") = orgStdin;
+
+    putPrompt();
 }
