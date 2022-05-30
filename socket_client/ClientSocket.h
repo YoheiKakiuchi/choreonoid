@@ -24,12 +24,15 @@ public:
   void readlineProc() {
     char* comm;
     while ((comm = readline("")) != nullptr && !terminate) {
-      printf("r\n");
       if (strlen(comm) > 0) {
         add_history(comm);
 
         printf("[%s]\n", comm);
         this->sendMsg(comm);
+      } else {
+        // just input return
+        printf("[\n]\n");
+        this->sendMsg("\n");
       }
       // free buffer
       free(comm);
@@ -39,12 +42,13 @@ public:
 private:
   bool terminate;
 
-public slots:
-  void sendMsg(const char *msg)
+private:
+  inline void sendMsg(const char *msg)
   {
     QString qmsg(msg);
     emit sendRequest(qmsg);
   }
+
 public slots:
   void setTerminate() { terminate = true; }
 

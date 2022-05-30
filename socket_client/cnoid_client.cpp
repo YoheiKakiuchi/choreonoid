@@ -18,7 +18,6 @@ int main(int argc, char * argv[])
   client.connect(&adaptor, &readlineAdaptor::sendRequest,
                  &client, &cnoidClientSocket::sendMsg);
 
-  //QFuture<void> future = QtConcurrent::run(readlineProc, &adaptor);
   QFuture<void> future = QtConcurrent::run(&adaptor, &readlineAdaptor::readlineProc);
 
   client.connect(&client, &cnoidClientSocket::disconnected,
