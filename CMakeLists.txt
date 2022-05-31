@@ -532,10 +532,10 @@ macro(setup_qt5)
     find_package(Qt5Network ${version} HINTS ${qt_cmake_dirs})
     set(QT_LIBRARIES Qt5::Core Qt5::Widgets Qt5::OpenGL Qt5::Network)
   elseif(UNIX)
-    find_package(Qt5 COMPONENTS Core Widgets OpenGL Network X11Extras)
+    find_package(Qt5 COMPONENTS Core Widgets OpenGL Network Concurrent X11Extras)
     set(QT_LIBRARIES
       ${Qt5Core_LIBRARIES} ${Qt5Widgets_LIBRARIES} ${Qt5OpenGL_LIBRARIES} ${Qt5Network_LIBRARIES}
-      ${Qt5X11Extras_LIBRARIES})
+      ${Qt5Concurrent_LIBRARIES} ${Qt5X11Extras_LIBRARIES})
   endif()
   set(QT5 TRUE)
 
@@ -568,7 +568,7 @@ macro(setup_qt5)
     if(INSTALL_SDK_WITH_EXTLIBS)
       foreach(dir
 	  ${Qt5Core_INCLUDE_DIRS} ${Qt5Gui_INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS}
-	  ${Qt5OpenGL_INCLUDE_DIRS} ${Qt5Network_INCLUDE_DIRS})
+	  ${Qt5OpenGL_INCLUDE_DIRS} ${Qt5Network_INCLUDE_DIRS} ${Qt5Concurrent_INCLUDE_DIRS})
         install(DIRECTORY ${dir} DESTINATION ${CNOID_HEADER_SUBDIR})
       endforeach()
     endif()

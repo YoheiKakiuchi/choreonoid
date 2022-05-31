@@ -26,9 +26,21 @@ set(headers
   PythonScriptItemImpl.h
   )
 
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(sources ${sources} Readline.cpp)
+  set(headers ${headers} Readline.h)
+  set(qtheaders Readline.h)
+  QT5_WRAP_CPP(qtsources ${qtheaders})
+  set(sources ${sources} ${qtsources})
+endif()
+
 make_gettext_mofiles(${target} mofiles)
 add_cnoid_plugin(${target} SHARED ${sources} ${headers} ${mofiles})
-target_link_libraries(${target} CnoidBase CnoidPyUtil)
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  target_link_libraries(${target} CnoidBase CnoidPyUtil readline history)
+else()
+  target_link_libraries(${target} CnoidBase CnoidPyUtil )
+endif()
 apply_common_setting_for_plugin(${target} "${headers}")
 
 configure_file(rbimporter.py ${PROJECT_BINARY_DIR}/${CNOID_PYTHON_SUBDIR}/cnoid/ COPYONLY)
