@@ -9,7 +9,7 @@
 using namespace cnoid;
 
 readlineAdaptor::readlineAdaptor(QObject *parent)
-    : QObject(parent), terminate(false)  {
+    : QObject(parent) {
 
 }
 
@@ -18,9 +18,23 @@ bool readlineAdaptor::startThread() {
     return rl_future.isStarted();
 }
 
+static bool do_terminate;
+static int check_state() {
+    if (do_terminate) {
+        rl_done = 1;
+    }
+    return 0;
+}
+
 void readlineAdaptor::readlineProc() {
+    // for killing by Ctrl-C
+    rl_catch_signals = 0;
+    rl_clear_signals();
+    rl_event_hook = check_state;
+    do_terminate = false;
+
     char* comm;
-    while ((comm = readline("")) != nullptr && !terminate) {
+    while ((comm = readline("")) != nullptr && !do_terminate) {
         if (strlen(comm) > 0) {
             add_history(comm);
             {
@@ -40,11 +54,5 @@ void readlineAdaptor::readlineProc() {
 }
 
 void readlineAdaptor::setTerminate() {
-    terminate = true;
-    printf("term\n");
-    if(rl_future.isStarted()) {
-        printf(">can\n");
-        rl_future.cancel();
-        printf("can>\n");
-    }
+    do_terminate = true;
 }

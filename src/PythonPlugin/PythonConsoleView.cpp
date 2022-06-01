@@ -240,9 +240,7 @@ PythonConsoleView::~PythonConsoleView()
 PythonConsoleView::Impl::~Impl()
 {
     if (!!rl_adaptor) {
-        std::cerr << "adaptor" << std::endl;
         rl_adaptor->setTerminate();
-        std::cerr << "finish" << std::endl;
     }
 }
 
@@ -721,8 +719,6 @@ void PythonConsoleView::Impl::insertFromMimeData(const QMimeData* source)
 // add //
 void PythonConsoleView::Impl::putCommand(const QString &com)
 {
-    //std::cerr << "exec command: " << com.toStdString() << std::endl;
-
     //
     moveCursor(QTextCursor::End);
     insertPlainText(com + "\n");

@@ -26,7 +26,6 @@ namespace cnoid {
         void sendRequest(const QString &msg);
 
     private:
-        bool terminate;
         QFuture<void> rl_future;
     };
 
