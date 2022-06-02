@@ -225,7 +225,8 @@ PythonConsoleView::Impl::Impl(PythonConsoleView* self)
     rl_adaptor = new readlineAdaptor();
 
     connect(rl_adaptor, &readlineAdaptor::sendRequest,
-            this, &PythonConsoleView::Impl::putCommand);
+            this, &PythonConsoleView::Impl::putCommand,
+            Qt::BlockingQueuedConnection);  //Qt::DirectConnection);
 
     rl_adaptor->startThread();
 }
