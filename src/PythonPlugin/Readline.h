@@ -21,12 +21,14 @@ namespace cnoid {
         bool startThread();
         void readlineProc();
         void setTerminate();
+        void setPrompt(const QString &p) { prompt = p; };
 
     Q_SIGNALS:
         void sendRequest(const QString &msg);
 
     private:
         QFuture<void> rl_future;
+        QString prompt;
     };
 
 }

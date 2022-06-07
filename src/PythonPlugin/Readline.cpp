@@ -9,7 +9,7 @@
 using namespace cnoid;
 
 readlineAdaptor::readlineAdaptor(QObject *parent)
-    : QObject(parent) {
+  : QObject(parent), prompt(">>> ") {
 
 }
 
@@ -34,7 +34,7 @@ void readlineAdaptor::readlineProc() {
     do_terminate = false;
 
     char* comm;
-    while ((comm = readline("")) != nullptr && !do_terminate) {
+    while ((comm = readline(prompt.toStdString().c_str())) != nullptr && !do_terminate) {
         if (strlen(comm) > 0) {
             add_history(comm);
             {
