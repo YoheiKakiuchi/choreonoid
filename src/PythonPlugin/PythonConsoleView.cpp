@@ -255,6 +255,9 @@ void PythonConsoleView::onActivated()
 void PythonConsoleView::Impl::setPrompt(const char* newPrompt)
 {
     prompt = newPrompt;
+    if(!!rl_adaptor) {
+      rl_adaptor->setPrompt(prompt);
+    }
 }
 
 
@@ -749,5 +752,5 @@ void PythonConsoleView::Impl::putCommand(const QString &com)
     sys.attr("stderr") = orgStderr;
     sys.attr("stdin") = orgStdin;
 
-    putPrompt();
+    //putPrompt();
 }
