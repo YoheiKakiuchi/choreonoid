@@ -97,11 +97,13 @@ public:
     virtual void insertFromMimeData(const QMimeData* source);
 
     // add //
-    readlineAdaptor *rl_adaptor;
+    void inspectObject(const std::string &obj_name);
 
+    readlineAdaptor *rl_adaptor;
+    python::object inspector;
 public Q_SLOTS:
     void putCommand(const QString &com);
-
+    void getCompletionCandidates(const QString &com);
 };
 
 }
@@ -184,6 +186,8 @@ PythonConsoleView::Impl::Impl(PythonConsoleView* self)
 #else
     interpreter = python::module::import("code").attr("InteractiveConsole")(globalNamespace);
 #endif
+    python::object inspector_class = python::module::import("IPython").attr("core").attr("oinspect").attr("Inspector");
+    inspector = inspector_class();
 
     
     pybind11::object consoleOutClass =
@@ -224,8 +228,11 @@ PythonConsoleView::Impl::Impl(PythonConsoleView* self)
     // add //
     rl_adaptor = new readlineAdaptor();
 
-    connect(rl_adaptor, &readlineAdaptor::sendRequest,
+    connect(rl_adaptor, &readlineAdaptor::sendComRequest,
             this, &PythonConsoleView::Impl::putCommand,
+            Qt::BlockingQueuedConnection);  //Qt::DirectConnection);
+    connect(rl_adaptor, &readlineAdaptor::sendTabRequest,
+            this, &PythonConsoleView::Impl::getCompletionCandidates,
             Qt::BlockingQueuedConnection);  //Qt::DirectConnection);
 
     rl_adaptor->startThread();
@@ -256,7 +263,7 @@ void PythonConsoleView::Impl::setPrompt(const char* newPrompt)
 {
     prompt = newPrompt;
     if(!!rl_adaptor) {
-      rl_adaptor->setPrompt(prompt);
+        rl_adaptor->setPrompt(prompt);
     }
 }
 
@@ -267,8 +274,7 @@ void PythonConsoleView::Impl::put(const QString& message)
     insertPlainText(message);
     moveCursor(QTextCursor::End);
 
-    std::cout << message.toStdString();
-    std::flush(std::cout);
+    rl_adaptor->put(message);
 }
 
 
@@ -403,7 +409,13 @@ void PythonConsoleView::Impl::tabComplete()
 
     std::vector<string> moduleNames = dottedStrings;// words before last dot
     moduleNames.pop_back();
-
+    //
+    std::cerr << "dottedStrings.size() = " << dottedStrings.size() << std::endl;
+    for (int i = 0; i < dottedStrings.size(); i++) {
+      std::cerr << i << " / " << dottedStrings[i] << std::endl;
+    }
+        std::cerr << "last:" << lastDottedString << std::endl;
+    //
     python::object targetMemberObject = getMemberObject(moduleNames, mainModule); //member object before last dot
     std::vector<string> memberNames = getMemberNames(targetMemberObject);
 
@@ -738,10 +750,83 @@ void PythonConsoleView::Impl::putCommand(const QString &com)
     sys.attr("stderr") = consoleOut;
     sys.attr("stdin") = consoleIn;
 
-    if(interpreter.attr("push")(com.toStdString()).cast<bool>()){
-        setPrompt("... ");
+    if (com[0] == '?' && com.size() >= 2) {
+        std::string obj_str = com.trimmed().toStdString().substr(1);
+        inspectObject(obj_str);
     } else {
-        setPrompt(">>> ");
+        if(interpreter.attr("push")(com.toStdString()).cast<bool>()){
+            setPrompt("... ");
+        } else {
+            setPrompt(">>> ");
+        }
+    }
+    if(PyErr_Occurred()){
+        PyErr_Print();
+    }
+
+    sys.attr("stdout") = orgStdout;
+    sys.attr("stderr") = orgStderr;
+    sys.attr("stdin") = orgStdin;
+
+    //putPrompt();
+}
+
+void PythonConsoleView::Impl::getCompletionCandidates(const QString &com)
+{
+    python::gil_scoped_acquire lock;
+
+    orgStdout = sys.attr("stdout");
+    orgStderr = sys.attr("stderr");
+    orgStdin = sys.attr("stdin");
+
+    sys.attr("stdout") = consoleOut;
+    sys.attr("stderr") = consoleOut;
+    sys.attr("stdin") = consoleIn;
+
+    string beforeCursorString = com.toStdString();
+
+    size_t maxSplitIdx = 0;
+    for(std::vector<string>::iterator it = splitStringVec.begin(); it != splitStringVec.end();  ++it){
+        size_t splitIdx = beforeCursorString.find_last_of(*it);
+        maxSplitIdx = std::max(splitIdx == string::npos ? 0 : splitIdx + 1, maxSplitIdx);
+    }
+    string lastWord = beforeCursorString.substr(maxSplitIdx);
+    beforeCursorString = beforeCursorString.substr(0,maxSplitIdx);
+
+    std::vector<string> dottedStrings;
+    boost::split(dottedStrings, lastWord, boost::is_any_of("."));
+    string lastDottedString = dottedStrings.back();// word after last dot
+
+    std::vector<string> moduleNames = dottedStrings;// words before last dot
+    moduleNames.pop_back();
+
+    //
+    python::object targetMemberObject = getMemberObject(moduleNames, mainModule); //member object before last dot
+    std::vector<string> memberNames = getMemberNames(targetMemberObject);
+
+    // builtin function and syntax completions
+    if(dottedStrings.size() == 1){
+        python::object builtinsObject =  mainModule.attr("__builtins__");
+        std::vector<string> builtinMethods = getMemberNames(builtinsObject);
+        memberNames.insert(memberNames.end(), builtinMethods.begin(), builtinMethods.end());
+        memberNames.insert(memberNames.end(), keywords.begin(), keywords.end());
+    }
+
+    std::string prefix("");
+    if(dottedStrings.size() > 1){
+      for(int i = 0; i < dottedStrings.size() -1; i++) {
+        prefix += dottedStrings[i];
+        prefix += ".";
+      }
+    }
+
+    std::vector<string> completions;
+    //unsigned long int maxLength = std::numeric_limits<long>::max();
+    for(size_t i=0; i < memberNames.size(); ++i){
+        if(memberNames[i].substr(0,lastDottedString.size()) == lastDottedString){
+            completions.push_back(prefix + memberNames[i]);
+            //maxLength = std::min((unsigned long int)memberNames[i].size(),maxLength);
+        }
     }
 
     if(PyErr_Occurred()){
@@ -752,5 +837,33 @@ void PythonConsoleView::Impl::putCommand(const QString &com)
     sys.attr("stderr") = orgStderr;
     sys.attr("stdin") = orgStdin;
 
-    //putPrompt();
+    rl_adaptor->setResults(completions);
+}
+
+void PythonConsoleView::Impl::inspectObject(const std::string &obj_name)
+{
+    size_t maxSplitIdx = 0;
+    for(std::vector<string>::iterator it = splitStringVec.begin(); it != splitStringVec.end();  ++it){
+        size_t splitIdx = obj_name.find_last_of(*it);
+        maxSplitIdx = std::max(splitIdx == string::npos ? 0 : splitIdx + 1, maxSplitIdx);
+    }
+    string lastWord = obj_name.substr(maxSplitIdx);
+    //obj_name = obj_name.substr(0,maxSplitIdx);
+
+    std::vector<string> dottedStrings;
+    boost::split(dottedStrings, lastWord, boost::is_any_of("."));
+    string lastDottedString = dottedStrings.back();// word after last dot
+
+    std::vector<string> moduleNames = dottedStrings;// words before last dot
+    //moduleNames.pop_back();
+
+    //
+    python::object targetMemberObject = getMemberObject(moduleNames, mainModule); //member object before last dot
+
+    PyObject* pPyObject = targetMemberObject.ptr();
+    if(pPyObject == NULL) {
+        return;
+    }
+    //
+    inspector.attr("pinfo")(targetMemberObject);
 }
