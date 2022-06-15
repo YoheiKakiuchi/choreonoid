@@ -8,7 +8,15 @@ set(CMAKE_AUTOMOC ON)
 
 find_package(Qt5 COMPONENTS Core Gui Widgets Network Concurrent REQUIRED)
 
-add_executable(choreonoidClient cnoid_client.cpp ClientSocket.h)
-target_link_libraries(choreonoidClient Qt5::Core Qt5::Widgets Qt5::Concurrent Qt5::Network readline history)
+
+set(sources ${sources} cnoid_client.cpp)
+set(qtheaders ClientSocket.h)
+QT5_WRAP_CPP(qtsources ${qtheaders})
+set(sources ${sources} ${qtsources})
+
+add_executable(choreonoidClient ${sources})
+target_link_libraries(choreonoidClient Qt5::Core Qt5::Widgets Qt5::Concurrent Qt5::Network readline)
+
+## install
 
 

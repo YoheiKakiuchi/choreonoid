@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QLocalSocket>
 #include <QDataStream>
+#include <QThread>
 
 #include <iostream>
 
@@ -49,26 +50,39 @@ private:
     emit sendRequest(qmsg);
   }
 
-public slots:
+public Q_SLOTS:
   void setTerminate() { terminate = true; }
 
-signals:
-  void sendRequest(const QString msg);
+Q_SIGNALS:
+  void sendCom(const QString msg);
+  void sendQuerry(const QString msg);
 };
+
 
 class cnoidClientSocket : public QLocalSocket
 {
 
   Q_OBJECT
+
+public:
+  std::string stored;
+
 public:
     explicit cnoidClientSocket(QObject * parent = 0)
       : QLocalSocket(parent)
     {
+
+    }
+
+  bool connectWith(std::string &name)
+  {
       this->abort();
       //this->setReadBufferSize(4096);
 
       //
-      connect(this, &cnoidClientSocket::readyRead, this, &cnoidClientSocket::recvMsg);
+      connect(this, &cnoidClientSocket::readyRead, this, &cnoidClientSocket::recvMsg,
+              //Qt::BlockingQueuedConnection);
+              Qt::DirectConnection);
 
       connect(this, static_cast<void (cnoidClientSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
               this, &cnoidClientSocket::handleError);
@@ -78,7 +92,7 @@ public:
       connect(this, &cnoidClientSocket::disconnected, this, &cnoidClientSocket::handleDisconnect);
 
       std::cerr << ">socket connection" << std::endl;
-      this->connectToServer(".choreonoid_console_server");
+      this->connectToServer(name);
 
       std::cerr << "vaild: " << this->isValid() << std::endl;
 
@@ -97,23 +111,37 @@ public:
 
     }
 
-public slots:
+Q_SIGNALS:
+  void finishStored();
+
+public Q_SLOTS:
+  void startThread() {
+    this->readlineProc();
+  }
+  void setTerminate() { terminate = true; }
+
+  void hogehoge()
+  {
+    std::cerr << "class::hogehoge" << std::endl;
+  }
+
   void handleConnect()
   {
-    std::cerr << "connected" << std::endl;
+    std::cerr << "class::connected" << std::endl;
   }
   void handleDisconnect()
   {
-    std::cerr << "disconnected" << std::endl;
+    std::cerr << "class::disconnected" << std::endl;
+    terminate = false;
     QApplication::quit();
   }
   void handleError(QLocalSocket::LocalSocketError l_error)
   {
-    std::cerr << "error: " << l_error << std::endl;
+    std::cerr << "class::error: " << l_error << std::endl;
   }
   void handleState(QLocalSocket::LocalSocketState l_state)
   {
-    std::cerr << "state: " << l_state << std::endl;
+    std::cerr << "class::state: " << l_state << std::endl;
   }
   //void sendMsg(const char* msg)
   void sendMsg(const QString msg)
@@ -128,9 +156,30 @@ public slots:
     this->flush();
   }
 
+  void sendMsgWait(const QString msg)
+  {
+    QDataStream in(this);
+    // check available
+
+    QByteArray block;
+    QDataStream out(&block, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_5_1);
+
+    out << msg.toUtf8();
+
+    this->write(block);
+    this->flush();
+
+    //loop;
+    //connect(this, finishStored, &loop, finish);
+    //loop.exec();
+    // wait received
+
+  }
+
   void recvMsg()
   {
-    //std::cerr << ">recvMsg" << std::endl;
+    std::cerr << ">recvMsg" << std::endl;
     QDataStream in(this);
     in.setVersion(QDataStream::Qt_5_1);
 
@@ -139,10 +188,13 @@ public slots:
       //in >> blockSize;
       QByteArray data;
       in >> data;
-      std::cout << std::string( data.data() );
+      this->stored = std::string( data.data() );
+      std::cout << this->stored;
       std::flush(std::cout);
     }
-    //std::cerr << "recvMsg>" << std::endl;
+
+    emit finishStored();
+    std::cerr << "recvMsg>" << std::endl;
   }
 
 };
