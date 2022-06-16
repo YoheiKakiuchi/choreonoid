@@ -1,6 +1,5 @@
+#include <iostream>
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -9,7 +8,7 @@
 using namespace cnoid;
 
 readlineAdaptor::readlineAdaptor(QObject *parent)
-  : QObject(parent), prompt(">>> ") {
+  : QObject(parent), prompt(">>> "), qserver(nullptr), qsocket(nullptr) {
 
 }
 
@@ -19,7 +18,6 @@ bool readlineAdaptor::startThread() {
 }
 
 static readlineAdaptor *singleton;
-static std::vector<std::string> tabResults;
 static bool do_terminate;
 static int check_state() {
     if (do_terminate) {
@@ -63,6 +61,7 @@ character_name_generator(const char *text, int state)
         list_index = 0;
         len = strlen(text);
     }
+    std::vector<std::string> &tabResults = singleton->getResults();
     while (list_index < tabResults.size()) {
         name = tabResults[list_index++].c_str();
         if (strncmp(name, text, len) == 0) {
@@ -109,11 +108,28 @@ void readlineAdaptor::setTerminate() {
     do_terminate = true;
 }
 
-void readlineAdaptor::setResults(const std::vector<std::string> &ret) {
-    tabResults = ret;
-}
-
 void readlineAdaptor::queryComp(const char *str) {
     QString qmsg(str);
     Q_EMIT sendTabRequest(qmsg);
+}
+
+void readlineAdaptor::put_socket(const QString &message, int channel)
+{
+    if (!!qsocket) {
+        QByteArray block;
+        QDataStream out(&block, QIODevice::WriteOnly);
+        out.setVersion(QDataStream::Qt_5_1);
+        out << (qint64)0;
+        out << message.toUtf8();
+        out.device()->seek(0);
+        out << (qint64)channel;
+        qsocket->write(block);
+        qsocket->flush();
+    }
+}
+void readlineAdaptor::put(const QString &message) {
+    std::cout <<  message.toStdString();
+    std::flush(std::cout);
+
+    put_socket(message, 1);
 }

@@ -101,6 +101,9 @@ public:
 
     readlineAdaptor *rl_adaptor;
     python::object inspector;
+
+    void connectSocket();
+    void readSocket();
 public Q_SLOTS:
     void putCommand(const QString &com);
     void getCompletionCandidates(const QString &com);
@@ -235,6 +238,25 @@ PythonConsoleView::Impl::Impl(PythonConsoleView* self)
             this, &PythonConsoleView::Impl::getCompletionCandidates,
             Qt::BlockingQueuedConnection);  //Qt::DirectConnection);
 
+    QLocalServer *qserver = new QLocalServer();
+    rl_adaptor->qserver = qserver;
+    qserver->setMaxPendingConnections(1);
+    if (! qserver->listen(".choreonoid_console_server") ) {
+      if ( !QLocalServer::removeServer(".choreonoid_console_server") ) {
+        std::cerr << "QLocalServer remove error! / " << qserver->errorString().toStdString() << std::endl;
+        qserver = nullptr;
+        return;
+      } else {
+        if (! qserver->listen(".choreonoid_console_server") ) {
+          std::cerr << "QLocalServer open error! / " << qserver->errorString().toStdString() << std::endl;
+          qserver = nullptr;
+          return;
+        }
+      }
+    }
+    connect(qserver, &QLocalServer::newConnection, this, &PythonConsoleView::Impl::connectSocket);
+
+    ///
     rl_adaptor->startThread();
 }
 
@@ -273,8 +295,9 @@ void PythonConsoleView::Impl::put(const QString& message)
     moveCursor(QTextCursor::End);
     insertPlainText(message);
     moveCursor(QTextCursor::End);
-
-    rl_adaptor->put(message);
+    if(!!rl_adaptor) {
+        rl_adaptor->put(message);
+    }
 }
 
 
@@ -409,12 +432,6 @@ void PythonConsoleView::Impl::tabComplete()
 
     std::vector<string> moduleNames = dottedStrings;// words before last dot
     moduleNames.pop_back();
-    //
-    std::cerr << "dottedStrings.size() = " << dottedStrings.size() << std::endl;
-    for (int i = 0; i < dottedStrings.size(); i++) {
-      std::cerr << i << " / " << dottedStrings[i] << std::endl;
-    }
-        std::cerr << "last:" << lastDottedString << std::endl;
     //
     python::object targetMemberObject = getMemberObject(moduleNames, mainModule); //member object before last dot
     std::vector<string> memberNames = getMemberNames(targetMemberObject);
@@ -733,6 +750,52 @@ void PythonConsoleView::Impl::insertFromMimeData(const QMimeData* source)
 }
 
 // add //
+////
+void PythonConsoleView::Impl::connectSocket()
+{
+    rl_adaptor->qsocket =
+      rl_adaptor->qserver->nextPendingConnection();
+    connect(rl_adaptor->qsocket, &QLocalSocket::disconnected,
+            rl_adaptor->qsocket, &QLocalSocket::deleteLater);
+    connect(rl_adaptor->qsocket, &QLocalSocket::readyRead,
+            this, &PythonConsoleView::Impl::readSocket);
+}
+
+void PythonConsoleView::Impl::readSocket()
+{
+    QDataStream in(rl_adaptor->qsocket);
+    qint64 blockSize;
+    in.setVersion(QDataStream::Qt_5_1);
+    int num_available = rl_adaptor->qsocket->bytesAvailable();
+    //if(num_available < sizeof(qint64)) return;
+    while(!in.atEnd()) {
+        // gets data from socket
+        qint64 channel = -1;
+        in >> channel;
+        QByteArray data;
+        in >> data;
+        QString msg(data);
+        // switch channel
+        if (channel == 1) {
+            putCommand(msg);
+        } else if (channel == 2) {
+            getCompletionCandidates(msg);
+            if(!!rl_adaptor) {
+                std::vector<std::string> &res = rl_adaptor->getResults();
+                QString qres("");
+                if (res.size() > 0) {
+                    qres += QString(res[0].c_str());
+                    for(int i = 1; i < res.size(); i++) {
+                        qres += QString(";");
+                        qres += QString(res[i].c_str());
+                    }
+                }
+                rl_adaptor->put_socket(qres, channel);
+            }
+        }
+    }
+}
+
 void PythonConsoleView::Impl::putCommand(const QString &com)
 {
     //

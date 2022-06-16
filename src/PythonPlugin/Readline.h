@@ -3,6 +3,9 @@
 
 #include <QObject>
 #include <QtConcurrent>
+#include <QLocalServer>
+#include <QLocalSocket>
+
 #include "exportdecl.h"
 
 namespace cnoid {
@@ -22,12 +25,15 @@ namespace cnoid {
         void readlineProc();
         void setTerminate();
         void setPrompt(const QString &p) { prompt = p; };
-        void setResults(const std::vector<std::string> &ret);
         void queryComp(const char *str);
+        void put(const QString &message);
+        void put_socket(const QString &message, int channel = 1);
 
-        void put(const QString &message) {
-            std::cout <<  message.toStdString();
-            std::flush(std::cout);
+        void setResults(const std::vector<std::string> &ret) {
+            _results = ret;
+        }
+        std::vector<std::string> &getResults() {
+            return _results;
         }
 
     Q_SIGNALS:
@@ -37,9 +43,12 @@ namespace cnoid {
     private:
         QFuture<void> rl_future;
         QString prompt;
+        std::vector<std::string> _results;
+    // socket
+    public:
+        QLocalServer *qserver;
+        QLocalSocket *qsocket;
 
-        //socket command(standard input/output)
-        //socket querry
     };
 }
 
