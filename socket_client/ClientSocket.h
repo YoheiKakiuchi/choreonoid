@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QLocalSocket>
 #include <QDataStream>
+#include <QtConcurrent>
 
 #include <iostream>
 
@@ -14,90 +15,51 @@
 
 class readlineAdaptor : public QObject
 {
-  Q_OBJECT
+  Q_OBJECT;
+
 public:
   explicit readlineAdaptor()
   {
     terminate = false;
   }
 public:
-  void readlineProc() {
-    char* comm;
-    while ((comm = readline("")) != nullptr && !terminate) {
-      if (strlen(comm) > 0) {
-        add_history(comm);
-
-        printf("[%s]\n", comm);
-        this->sendMsg(comm);
-      } else {
-        // just input return
-        printf("[\n]\n");
-        this->sendMsg("\n");
-      }
-      // free buffer
-      free(comm);
-    }
+  void readlineProc();
+  void queryComp(const char *str);
+  void setResults(const std::vector<std::string> &ret) {
+    _results = ret;
+  }
+  std::vector<std::string> &getResults() {
+    return _results;
   }
 
 private:
   bool terminate;
+  QString prompt;
+  std::vector<std::string> _results;
 
-private:
-  inline void sendMsg(const char *msg)
-  {
-    QString qmsg(msg);
-    emit sendRequest(qmsg);
-  }
-
-public slots:
+public Q_SLOTS:
   void setTerminate() { terminate = true; }
+  void setQueryResults(const QByteArray &results);
 
-signals:
-  void sendRequest(const QString msg);
+Q_SIGNALS:
+  void sendComRequest(const QString &msg);
+  void sendTabRequest(const QString &msg);
+  void gotResults();
 };
 
 class cnoidClientSocket : public QLocalSocket
 {
-
-  Q_OBJECT
+    Q_OBJECT;
 public:
-    explicit cnoidClientSocket(QObject * parent = 0)
-      : QLocalSocket(parent)
-    {
-      this->abort();
-      //this->setReadBufferSize(4096);
+    explicit cnoidClientSocket(QObject * parent = 0);
 
-      //
-      connect(this, &cnoidClientSocket::readyRead, this, &cnoidClientSocket::recvMsg);
+    virtual ~cnoidClientSocket() { }
 
-      connect(this, static_cast<void (cnoidClientSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
-              this, &cnoidClientSocket::handleError);
-      //connect(this, SIGNAL(stateChanged(QLocalSocket::LocalSocketState)),
-      //        this, SLOT(handleState(QLocalSocket::LocalSocketState)));
-      connect(this, &cnoidClientSocket::connected, this, &cnoidClientSocket::handleConnect);
-      connect(this, &cnoidClientSocket::disconnected, this, &cnoidClientSocket::handleDisconnect);
+    void startThread();
+public:
+    readlineAdaptor *rl_adaptor;
 
-      std::cerr << ">socket connection" << std::endl;
-      this->connectToServer(".choreonoid_console_server");
-
-      std::cerr << "vaild: " << this->isValid() << std::endl;
-
-      if (!this->waitForConnected(10000)) {
-        std::cerr << "socket connect failed" << std::endl;
-        //QLocalSocket::LocalSocketError er = this->error();
-        return;
-      }
-
-      ///HelloServerサーバーに接続
-      std::cerr << "socket connection>" << std::endl;
-    }
-
-    virtual ~cnoidClientSocket()
-    {
-
-    }
-
-public slots:
+public Q_SLOTS:
   void handleConnect()
   {
     std::cerr << "connected" << std::endl;
@@ -115,35 +77,14 @@ public slots:
   {
     std::cerr << "state: " << l_state << std::endl;
   }
+
   //void sendMsg(const char* msg)
-  void sendMsg(const QString msg)
-  {
-    QByteArray block;
-    QDataStream out(&block, QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_5_1);
+  void sendMsg(const QString &msg);
+  void sendQuery(const QString &msg);
+  void recvMsg();
 
-    out << msg.toUtf8();
-
-    this->write(block);
-    this->flush();
-  }
-
-  void recvMsg()
-  {
-    //std::cerr << ">recvMsg" << std::endl;
-    QDataStream in(this);
-    in.setVersion(QDataStream::Qt_5_1);
-
-    while(!in.atEnd()) {
-      //qint64 blockSize;
-      //in >> blockSize;
-      QByteArray data;
-      in >> data;
-      std::cout << std::string( data.data() );
-      std::flush(std::cout);
-    }
-    //std::cerr << "recvMsg>" << std::endl;
-  }
+Q_SIGNALS:
+  void setResults(const QByteArray &results);
 
 };
 #endif // CLIENTWIDGET_H
