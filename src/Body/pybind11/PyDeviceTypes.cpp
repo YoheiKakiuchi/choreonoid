@@ -6,6 +6,12 @@
 #include "../Device.h"
 #include "../Link.h"
 #include "../ForceSensor.h"
+#include "../AccelerationSensor.h"
+#include "../RateGyroSensor.h"
+#include "../VisionSensor.h"
+#include "../Camera.h"
+#include "../RangeSensor.h"
+
 #include <cnoid/PyUtil>
 
 using namespace std;
@@ -48,6 +54,25 @@ void exportPyDeviceTypes(py::module& m)
         .def("getName", &Device::name)
         .def("getLink", (Link*(Device::*)())&Device::link)
         ;
+
+    py::class_<ForceSensor, ForceSensorPtr, Device>(m, "ForceSensor")
+    .def("wrench", [](const ForceSensor &self) { return self.wrench(); } )
+    .def("maxWrench", [](const ForceSensor &self) { return self.maxWrench(); } )
+    ;
+
+    py::class_<AccelerationSensor, AccelerationSensorPtr, Device>(m, "AccelerationSensor")
+    .def("dv", [](const AccelerationSensor &self) { return self.dv(); } )
+    .def("dv_max", [](const AccelerationSensor &self) { return self.dv_max(); } )
+    ;
+
+    py::class_<RateGyroSensor, RateGyroSensorPtr, Device>(m, "RateGyroSensor")
+    .def("w", [](const RateGyroSensor &self) { return self.w(); } )
+    .def("w_max", [](const RateGyroSensor &self) { return self.w_max(); } )
+    ;
+
+    py::class_<VisionSensor, VisionSensorPtr, Device>(m, "VisionSensor");
+    py::class_<Camera, CameraPtr, VisionSensor>(m, "Camera");
+    py::class_<RangeSensor, RangeSensorPtr, VisionSensor>(m, "RangeSensor");
 
     PyDeviceList<Device>(m, "DeviceList");
     PyDeviceList<ForceSensor>(m, "ForceSensorList");
