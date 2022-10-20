@@ -1,0 +1,38 @@
+ARG BASE_IMAGE=ubuntu:20.04
+FROM ${BASE_IMAGE}
+
+ARG UBUNTU_VER=20.04
+
+LABEL maintainer "IRSL-tut (https://github.com/IRSL-tut) <faculty@irsl.eiiris.tut.ac.jp>"
+
+SHELL ["/bin/bash", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
+
+### src
+WORKDIR /choreonoid_src
+
+### time zone
+RUN echo 'Asia/Tokyo' > /etc/timezone && \
+    ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
+    apt-get update -q -qq && \
+    apt-get install -q -qq -y --no-install-recommends tzdata && \
+    apt-get install -q -qq -y --no-install-recommends curl wget git sudo && \
+    rm -rf /var/lib/apt/lists/*
+
+##RUN git clone --depth=1 -b stable https://github.com/IRSL-tut/choreonoid.git
+COPY choreonoid choreonoid
+
+###
+RUN apt-get update -q -qq && \
+    choreonoid/misc/script/install-requisites-ubuntu-${UBUNTU_VER}.sh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/
+
+WORKDIR /choreonoid_src/build
+
+RUN cmake -DCMAKE_INSTALL_PREFIX=/opt/choreonoid /choreonoid_src/choreonoid && \
+    make -j$(nproc) && \
+    make install
+
+ENV PATH=$PATH:/opt/choreonoid/bin
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/choreonoid/lib

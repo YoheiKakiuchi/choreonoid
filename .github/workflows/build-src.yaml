@@ -1,0 +1,82 @@
+name: BuildSrc
+run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+#
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu: [22.04, 20.04]
+        branch: [master, stable, with_irsl_system]
+    runs-on: self-hosted
+    env:
+      IMAGE_NAME: choreonoid_src
+      LOCAL_NAME: actions/choreonoid_src_${{ matrix.branch }}
+#      DOCKER_LOCAL: ghcr.io/
+#      DOCKER_LOCAL: repo.irsl.eiiris.tut.ac.jp/
+      DOCKER_DEPLOY: repo.irsl.eiiris.tut.ac.jp/
+      DOCKER_TAG: ${{ matrix.ubuntu }}
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "${{ github.repository }} "
+      ##
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          repository: IRSL-tut/choreonoid
+          ref: ${{ matrix.branch }}
+          path: choreonoid
+      ##
+      - name: Check Image Exist
+        run: |
+          ls -tarl .
+          IMAGE_ID=$( docker image ls -q ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} )
+          if [ -n "${IMAGE_ID}" ]; then
+            echo "DO_BUILD_PROCESS=false" >> $GITHUB_ENV
+          else
+            echo "DO_BUILD_PROCESS=true"  >> $GITHUB_ENV
+          fi
+        continue-on-error: true
+      - name: Check Docker
+        id: check_sha
+        if: ${{ ! env.DO_BUILD_PROCESS }}
+        run: |
+          DOCKER_LOG_SHA=$(docker run ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} -- '(cd choreonoid_src/choreonoid; git log -1 --pretty=%H)')
+          GITHUB_LOG_SHA=$(git log -1 --pretty=%H)
+          echo "${DOCKER_LOG_SHA} == ${GITHUB_LOG_SHA}"
+          if [ "${DOCKER_LOG_SHA}" != "${GITHUB_LOG_SHA}" ]; then
+            echo "DO_BUILD_PROCESS=true" >> $GITHUB_ENV
+          fi
+      - name: Build Docker(SRC)
+        if: ${{ env.DO_BUILD_PROCESS && (matrix.branch != with_irsl_system) }}
+        run: >
+          docker build -f .github/workflows/Dockerfile.build_src --pull
+          --build-arg BASE_IMAGE=ubuntu:${{ matrix.ubuntu }}
+          --build-arg UBUNTU_VER=${{ matrix.ubuntu }}
+          -t ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} .
+      - name: Build Docker(xeus)
+        if: ${{ env.DO_BUILD_PROCESS && (matrix.branch == with_irsl_system) }}
+        run: |
+          wget https://github.com/IRSL-tut/irsl_docker/raw/xeus/Dockerfile -O Dockerfile.xeus
+          docker build -f Dockerfile.xeus --pull --build-arg BUILD_IMAGE=ubuntu:${{ matrix.ubuntu }} --build-arg BASE_IMAGE=ubuntu:${{ matrix.ubuntu }} -t xeus:${{ env.DOCKER_TAG }} .
+      - name: Build Docker(IRSL)
+        if: ${{ env.DO_BUILD_PROCESS && (matrix.branch == with_irsl_system) }}
+        run: >
+          docker build -f .github/workflows/Dockerfile.build_src --pull
+          --build-arg BASE_IMAGE=xeus:${{ matrix.ubuntu }}
+          --build-arg UBUNTU_VER=${{ matrix.ubuntu }}
+          -t ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} .
+#      - name: Test
+      - name: Check Error
+        if: ${{ failure() }}
+        run: echo "::error file=.github/workflows/Dockerfile.build_src,title=DockerBuildError::Failed to build docker image ${{ matrix.branch }}_${{ matrix.ubuntu }}"
+      - name: Deploy
+        if: ${{ matrix.branch == 'stable' &&  env.DO_BUILD_PROCESS }}
+        run: |
+          docker tag ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} ${{ env.DOCKER_DEPLOY }}${{ env.IMAGE_NAME }}:${{ env.DOCKER_TAG }}
+          docker push ${{ env.DOCKER_DEPLOY }}${{ env.IMAGE_NAME }}:${{ env.DOCKER_TAG }}
