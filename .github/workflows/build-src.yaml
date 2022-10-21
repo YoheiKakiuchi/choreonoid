@@ -3,7 +3,8 @@ run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 #
 on:
   workflow_dispatch:
-
+  schedule:
+    - cron: '30 2 * * 0,3'
 jobs:
   build:
     strategy:
@@ -23,9 +24,11 @@ jobs:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "${{ github.repository }} "
       ##
-      - name: Check out repository code
+      - name: Check out repository code(src)
         uses: actions/checkout@v3
-      - name: Check out repository code
+        with:
+          submodules: recursive
+      - name: Check out repository code(main)
         uses: actions/checkout@v3
         with:
           repository: IRSL-tut/choreonoid
@@ -36,38 +39,43 @@ jobs:
         run: |
           ls -tarl .
           IMAGE_ID=$( docker image ls -q ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} )
+          echo "IMAGE_ID: ${IMAGE_ID}"
           if [ -n "${IMAGE_ID}" ]; then
+            echo "DO_BUILD_PROCESS=false"
             echo "DO_BUILD_PROCESS=false" >> $GITHUB_ENV
           else
+            echo "DO_BUILD_PROCESS=true"
             echo "DO_BUILD_PROCESS=true"  >> $GITHUB_ENV
           fi
         continue-on-error: true
       - name: Check Docker
         id: check_sha
-        if: ${{ ! env.DO_BUILD_PROCESS }}
+        if: ${{ env.DO_BUILD_PROCESS == 'false' }}
         run: |
-          DOCKER_LOG_SHA=$(docker run ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} -- '(cd choreonoid_src/choreonoid; git log -1 --pretty=%H)')
-          GITHUB_LOG_SHA=$(git log -1 --pretty=%H)
+          DOCKER_LOG_SHA=$(docker run -- ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} bash -c '(cd /choreonoid_src/choreonoid; git log -1 --pretty=%H)')
+          GITHUB_LOG_SHA=$( cd choreonoid; git log -1 --pretty=%H )
           echo "${DOCKER_LOG_SHA} == ${GITHUB_LOG_SHA}"
           if [ "${DOCKER_LOG_SHA}" != "${GITHUB_LOG_SHA}" ]; then
             echo "DO_BUILD_PROCESS=true" >> $GITHUB_ENV
           fi
       - name: Build Docker(SRC)
-        if: ${{ env.DO_BUILD_PROCESS && (matrix.branch != with_irsl_system) }}
+        if: ${{ ( env.DO_BUILD_PROCESS == 'true' ) && ( matrix.branch != 'with_irsl_system' ) }}
         run: >
           docker build -f .github/workflows/Dockerfile.build_src --pull
           --build-arg BASE_IMAGE=ubuntu:${{ matrix.ubuntu }}
           --build-arg UBUNTU_VER=${{ matrix.ubuntu }}
           -t ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} .
       - name: Build Docker(xeus)
-        if: ${{ env.DO_BUILD_PROCESS && (matrix.branch == with_irsl_system) }}
+        if: ${{ ( env.DO_BUILD_PROCESS == 'true' ) && ( matrix.branch == 'with_irsl_system' ) }}
         run: |
           wget https://github.com/IRSL-tut/irsl_docker/raw/xeus/Dockerfile -O Dockerfile.xeus
           docker build -f Dockerfile.xeus --pull --build-arg BUILD_IMAGE=ubuntu:${{ matrix.ubuntu }} --build-arg BASE_IMAGE=ubuntu:${{ matrix.ubuntu }} -t xeus:${{ env.DOCKER_TAG }} .
+          docker tag xeus:${{ env.DOCKER_TAG }} ${{ env.DOCKER_DEPLOY }}xeus:${{ env.DOCKER_TAG }}
+          docker push ${{ env.DOCKER_DEPLOY }}xeus:${{ env.DOCKER_TAG }}
       - name: Build Docker(IRSL)
-        if: ${{ env.DO_BUILD_PROCESS && (matrix.branch == with_irsl_system) }}
+        if: ${{ ( env.DO_BUILD_PROCESS == 'true' ) && ( matrix.branch == 'with_irsl_system' ) }}
         run: >
-          docker build -f .github/workflows/Dockerfile.build_src --pull
+          docker build -f .github/workflows/Dockerfile.build_src
           --build-arg BASE_IMAGE=xeus:${{ matrix.ubuntu }}
           --build-arg UBUNTU_VER=${{ matrix.ubuntu }}
           -t ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} .
@@ -76,7 +84,7 @@ jobs:
         if: ${{ failure() }}
         run: echo "::error file=.github/workflows/Dockerfile.build_src,title=DockerBuildError::Failed to build docker image ${{ matrix.branch }}_${{ matrix.ubuntu }}"
       - name: Deploy
-        if: ${{ matrix.branch == 'stable' &&  env.DO_BUILD_PROCESS }}
+        if: ${{ ( matrix.branch == 'stable' ) && ( env.DO_BUILD_PROCESS == 'true' ) }}
         run: |
           docker tag ${{ env.LOCAL_NAME }}:${{ env.DOCKER_TAG }} ${{ env.DOCKER_DEPLOY }}${{ env.IMAGE_NAME }}:${{ env.DOCKER_TAG }}
           docker push ${{ env.DOCKER_DEPLOY }}${{ env.IMAGE_NAME }}:${{ env.DOCKER_TAG }}
