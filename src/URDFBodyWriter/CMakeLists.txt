@@ -12,3 +12,6 @@ target_link_libraries(CnoidURDFBodyWriter CnoidBody ${PUGIXML_STATIC_LIBRARIES})
 
 add_executable(testxml test_xml.cpp)
 target_link_libraries(testxml ${PUGIXML_STATIC_LIBRARIES})
+
+add_executable(test_assimp test_assimp.cpp)
+target_link_libraries(test_assimp CnoidBody CnoidAssimpSceneWriter)
