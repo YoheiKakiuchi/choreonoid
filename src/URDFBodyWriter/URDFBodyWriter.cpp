@@ -1,5 +1,7 @@
 #include "URDFBodyWriter.h"
 
+#include <cnoid/AssimpSceneWriter>
+
 #include <cnoid/NullOut>
 #include <cnoid/MeshExtractor>
 #include <cnoid/EigenUtil>

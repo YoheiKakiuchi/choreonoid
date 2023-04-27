@@ -1,7 +1,6 @@
 #ifndef CNOID_URDF_BODY_WRITER_URDF_BODY_WRITER_H
 #define CNOID_URDF_BODY_WRITER_URDF_BODY_WRITER_H
 
-#include <cnoid/AssimpSceneWriter>
 #include <cnoid/Body>
 #include "exportdecl.h"
 
