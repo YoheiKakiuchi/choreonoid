@@ -7,6 +7,7 @@
 #include <cnoid/NullOut>
 #include <cnoid/SceneDrawables>
 #include <cnoid/MeshExtractor>
+#include <cnoid/MeshGenerator>
 
 #include <vector>
 
@@ -15,7 +16,7 @@ using namespace cnoid;
 //using fmt::format;
 //namespace filesystem = cnoid::stdx::filesystem;
 
-#if 1
+#if 0
 #include <iostream>
 #define DEBUG_STREAM(args) \
     std::cerr << "[" << __PRETTY_FUNCTION__ << "]" << args << std::endl
@@ -42,13 +43,14 @@ public:
     void copyConfigurations(const Impl* org);
 
     std::string output_type;
-    bool primitive_to_mesh;
+    bool generate_primitive_mesh;
     bool verbose;
     std::vector<aiMesh*> vec_mesh;
     std::vector<aiMaterial*> vec_material;
     //// assimp
     MeshExtractor meshExtractor;
-    void addMesh();
+    void callbackMesh();
+    void addMesh(SgMesh *mesh);
     aiScene *createScene();
     bool storeScene(aiScene *_pscene, const std::string &_filename, std::string &_id);
 
@@ -56,7 +58,7 @@ public:
     {
         vec_mesh.resize(0);
         vec_material.resize(0);
-        meshExtractor.extract(_geometry,  [this](){ addMesh(); });
+        meshExtractor.extract(_geometry,  [this](){ callbackMesh(); });
     }
     void clear() {
         vec_mesh.resize(0);
@@ -72,7 +74,7 @@ AssimpSceneWriter::AssimpSceneWriter()
 }
 AssimpSceneWriter::Impl::Impl(AssimpSceneWriter *_self) : self(_self)
 {
-    primitive_to_mesh = false;
+    generate_primitive_mesh = false;
     verbose = false;
 }
 AssimpSceneWriter::AssimpSceneWriter(const AssimpSceneWriter& org)
@@ -83,7 +85,7 @@ AssimpSceneWriter::AssimpSceneWriter(const AssimpSceneWriter& org)
 void AssimpSceneWriter::Impl::copyConfigurations(const Impl* org)
 {
     output_type = org->output_type;
-    primitive_to_mesh = org->primitive_to_mesh;
+    generate_primitive_mesh = org->generate_primitive_mesh;
     verbose = org->verbose;
 }
 AssimpSceneWriter::~AssimpSceneWriter()
@@ -98,6 +100,14 @@ void AssimpSceneWriter::setOutputType(const std::string& _type)
 const std::string &AssimpSceneWriter::getOutputType()
 {
     return impl->output_type;
+}
+void AssimpSceneWriter::setVerbose(bool on)
+{
+    impl->verbose = on;
+}
+void AssimpSceneWriter::generatePrimitiveMesh(bool on)
+{
+    impl->generate_primitive_mesh = on;
 }
 ////////
 //// normal
@@ -114,158 +124,195 @@ bool AssimpSceneWriter::writeScene(const std::string& filename, SgNode* node)
     impl->extractMeshSgNode(node);
     aiScene *res_ = impl->createScene();
     if(!res_) {
-        DEBUG_STREAM("hoge 0");
         return false;
     }
     bool ret_ = impl->storeScene(res_, filename, impl->output_type);
-    DEBUG_STREAM("hoge 1 : " << ret_);
     delete res_;
     return ret_;
 }
-void AssimpSceneWriter::Impl::addMesh()
+void AssimpSceneWriter::Impl::callbackMesh()
 {
-    DEBUG_STREAM("");
     SgMesh* mesh = meshExtractor.currentMesh();
+    if(mesh->primitiveType() == SgMesh::MeshType && mesh->hasTriangles()) {
+        addMesh(mesh);
+    } else if (generate_primitive_mesh) {
+        MeshGenerator mg_;
+        SgMesh* gmesh;
+        switch(mesh->primitiveType()) {
+        case SgMesh::BoxType:
+        {
+            SgMesh::Box prim = mesh->primitive<SgMesh::Box>();
+            gmesh = mg_.generateBox(prim.size);
+        }
+        break;
+        case SgMesh::SphereType:
+        {
+            SgMesh::Sphere prim = mesh->primitive<SgMesh::Sphere>();
+            gmesh = mg_.generateSphere(prim.radius);
+        }
+        break;
+        case SgMesh::CylinderType:
+        {
+            SgMesh::Cylinder prim = mesh->primitive<SgMesh::Cylinder>();
+            gmesh = mg_.generateCylinder(prim.radius, prim.height);
+        }
+        break;
+        case SgMesh::ConeType:
+        {
+            SgMesh::Cone prim = mesh->primitive<SgMesh::Cone>();
+            gmesh = mg_.generateCylinder(prim.radius, prim.height);
+        }
+        break;
+        case SgMesh::CapsuleType:
+        {
+            SgMesh::Capsule prim = mesh->primitive<SgMesh::Capsule>();
+            gmesh = mg_.generateCylinder(prim.radius, prim.height);
+        }
+        break;
+        default:
+        {
+            self->os() << "not supported type" << std::endl;
+        }
+        break;
+        }
+        addMesh(gmesh);
+    }
+}
+void AssimpSceneWriter::Impl::addMesh(SgMesh *mesh)
+{
+    DEBUG_STREAM(" addMesh");
+    //SgMesh* mesh = meshExtractor.currentMesh();
     SgShape* shape = meshExtractor.currentShape();
     const Affine3& T = meshExtractor.currentTransform();
 
-    if(mesh->primitiveType() == SgMesh::MESH && mesh->hasTriangles()) {
-        aiMesh *pMesh = new aiMesh();
-        pMesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE;
-        const SgVertexArray& vertices_ = *mesh->vertices();
-        const size_t numVertices = vertices_.size();
-        pMesh->mNumVertices = numVertices;
-        pMesh->mVertices = new aiVector3D [numVertices];
+    aiMesh *pMesh = new aiMesh();
+    pMesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE;
+    const SgVertexArray& vertices_ = *mesh->vertices();
+    const size_t numVertices = vertices_.size();
+    pMesh->mNumVertices = numVertices;
+    pMesh->mVertices = new aiVector3D [numVertices];
 
-        DEBUG_STREAM(" numVertices : " << numVertices);
-        //bool hasVertices() const { return (vertices_ && !vertices_->empty()); }
-        for(size_t i = 0; i < numVertices; i++) {
-            const Vector3 v = T * vertices_[i].cast<Isometry3::Scalar>();
-            pMesh->mVertices[i].x = v.x();
-            pMesh->mVertices[i].y = v.y();
-            pMesh->mVertices[i].z = v.z();
-        }
-
-        if (mesh->hasNormals()) {
-            const SgNormalArray& normals_ = *mesh->normals();
-            const size_t numNormals = normals_.size();
-            DEBUG_STREAM(" numNormals : " << numNormals);
-            if(mesh->hasNormalIndices()) {
-                const SgIndexArray& nIndices = mesh->normalIndices();
-                DEBUG_STREAM(" nIndices.size() : " << nIndices.size());
-                const SgIndexArray& vIndices = mesh->triangleVertices();
-                DEBUG_STREAM(" vIndices.size() : " << vIndices.size());
-                if (nIndices.size() == vIndices.size()) {
-                    pMesh->mNormals  = new aiVector3D [pMesh->mNumVertices];
-                    for (size_t k = 0; k < nIndices.size(); k++) {
-                        Vector3 n = T * normals_[nIndices[k]].cast<Isometry3::Scalar>();
-                        size_t idx = vIndices[k];
-                        n.normalize();
-                        pMesh->mNormals[idx].x = n.x();
-                        pMesh->mNormals[idx].y = n.y();
-                        pMesh->mNormals[idx].z = n.z();
-                    }
-                } else {
-                    self->os() << "AssimpSceneWriter: parse error! (normals/indices)" << std::endl;
+    DEBUG_STREAM(" numVertices : " << numVertices);
+    //bool hasVertices() const { return (vertices_ && !vertices_->empty()); }
+    for(size_t i = 0; i < numVertices; i++) {
+        const Vector3 v = T * vertices_[i].cast<Isometry3::Scalar>();
+        pMesh->mVertices[i].x = v.x();
+        pMesh->mVertices[i].y = v.y();
+        pMesh->mVertices[i].z = v.z();
+    }
+    if (mesh->hasNormals()) {
+        const SgNormalArray& normals_ = *mesh->normals();
+        const size_t numNormals = normals_.size();
+        DEBUG_STREAM(" numNormals : " << numNormals);
+        if(mesh->hasNormalIndices()) {
+            const SgIndexArray& nIndices = mesh->normalIndices();
+            DEBUG_STREAM(" nIndices.size() : " << nIndices.size());
+            const SgIndexArray& vIndices = mesh->triangleVertices();
+            DEBUG_STREAM(" vIndices.size() : " << vIndices.size());
+            if (nIndices.size() == vIndices.size()) {
+                pMesh->mNormals  = new aiVector3D [pMesh->mNumVertices];
+                for (size_t k = 0; k < nIndices.size(); k++) {
+                    Vector3 n = T * normals_[nIndices[k]].cast<Isometry3::Scalar>();
+                    size_t idx = vIndices[k];
+                    n.normalize();
+                    pMesh->mNormals[idx].x = n.x();
+                    pMesh->mNormals[idx].y = n.y();
+                    pMesh->mNormals[idx].z = n.z();
                 }
             } else {
-                if(numNormals == pMesh->mNumVertices) {
-                    pMesh->mNormals  = new aiVector3D [numNormals];
-                    for (size_t k = 0; k < numNormals; k++) {
-                        Vector3 n = T * normals_[k].cast<Isometry3::Scalar>();
-                        n.normalize();
-                        pMesh->mNormals[k].x = n.x();
-                        pMesh->mNormals[k].y = n.y();
-                        pMesh->mNormals[k].z = n.z();
-                    }
-                } else {
-                    self->os() << "AssimpSceneWriter: parse error! (normals)" << std::endl;
+                self->os() << "AssimpSceneWriter: parse error! (normals/indices)" << std::endl;
+            }
+        } else {
+            if(numNormals == pMesh->mNumVertices) {
+                pMesh->mNormals  = new aiVector3D [numNormals];
+                for (size_t k = 0; k < numNormals; k++) {
+                    Vector3 n = T * normals_[k].cast<Isometry3::Scalar>();
+                    n.normalize();
+                    pMesh->mNormals[k].x = n.x();
+                    pMesh->mNormals[k].y = n.y();
+                    pMesh->mNormals[k].z = n.z();
                 }
+            } else {
+                self->os() << "AssimpSceneWriter: parse error! (normals)" << std::endl;
             }
         }
-
-        if (mesh->hasColors()) {
-            const SgColorArray& colors_ = *mesh->colors();
-            const size_t numColors = colors_.size();
-            DEBUG_STREAM(" numColors : " << numColors);
-            if(mesh->hasColorIndices()) {
-                const SgIndexArray& cIndices = mesh->colorIndices();
-                DEBUG_STREAM(" cIndices.size() : " << cIndices.size());
-                const SgIndexArray& vIndices = mesh->triangleVertices();
-                DEBUG_STREAM(" vIndices.size() : " << vIndices.size());
-                if (cIndices.size() == vIndices.size()) {
-                    pMesh->mColors[0]  = new aiColor4D [pMesh->mNumVertices];
-                    for (size_t k = 0; k < cIndices.size(); k++) {
-                        Vector3f col_ = colors_[cIndices[k]];
-                        size_t idx = vIndices[k];
-                        aiColor4D &acol_ = pMesh->mColors[0][idx];
-                        acol_.r = col_[0];
-                        acol_.g = col_[1];
-                        acol_.b = col_[2];
-                        acol_.a = 1.0;
-                    }
-                } else {
-                    self->os() << "AssimpSceneWriter: parse error! (colors/indices)" << std::endl;
+    }
+    if (mesh->hasColors()) {
+        const SgColorArray& colors_ = *mesh->colors();
+        const size_t numColors = colors_.size();
+        DEBUG_STREAM(" numColors : " << numColors);
+        if(mesh->hasColorIndices()) {
+            const SgIndexArray& cIndices = mesh->colorIndices();
+            DEBUG_STREAM(" cIndices.size() : " << cIndices.size());
+            const SgIndexArray& vIndices = mesh->triangleVertices();
+            DEBUG_STREAM(" vIndices.size() : " << vIndices.size());
+            if (cIndices.size() == vIndices.size()) {
+                pMesh->mColors[0]  = new aiColor4D [pMesh->mNumVertices];
+                for (size_t k = 0; k < cIndices.size(); k++) {
+                    Vector3f col_ = colors_[cIndices[k]];
+                    size_t idx = vIndices[k];
+                    aiColor4D &acol_ = pMesh->mColors[0][idx];
+                    acol_.r = col_[0];
+                    acol_.g = col_[1];
+                    acol_.b = col_[2];
+                    acol_.a = 1.0;
                 }
             } else {
-                if(numColors == pMesh->mNumVertices) {
-                    pMesh->mColors[0]  = new aiColor4D [numColors];
-                    for (size_t k = 0; k < numColors; k++) {
-                        Vector3f col_ = colors_[k];
-                        aiColor4D &acol_ = pMesh->mColors[0][k];
-                        acol_.r = col_[0];
-                        acol_.g = col_[1];
-                        acol_.b = col_[2];
-                        acol_.a = 1.0;
-                    }
-                } else {
-                    self->os() << "AssimpSceneWriter: parse error! (colors)" << std::endl;
+                self->os() << "AssimpSceneWriter: parse error! (colors/indices)" << std::endl;
+            }
+        } else {
+            if(numColors == pMesh->mNumVertices) {
+                pMesh->mColors[0]  = new aiColor4D [numColors];
+                for (size_t k = 0; k < numColors; k++) {
+                    Vector3f col_ = colors_[k];
+                    aiColor4D &acol_ = pMesh->mColors[0][k];
+                    acol_.r = col_[0];
+                    acol_.g = col_[1];
+                    acol_.b = col_[2];
+                    acol_.a = 1.0;
                 }
-           }
+            } else {
+                self->os() << "AssimpSceneWriter: parse error! (colors)" << std::endl;
+            }
         }
-        const int numTriangles = mesh->numTriangles();
-        DEBUG_STREAM(" numTriangles : " << numTriangles);
-        DEBUG_STREAM(" faceVertexIndices : " << mesh->faceVertexIndices().size());
-        pMesh->mNumFaces = numTriangles;
-        pMesh->mFaces = new aiFace[numTriangles];
-        for(size_t i = 0; i < numTriangles; i++) {
-            SgMesh::TriangleRef tri = mesh->triangle(i);
-            pMesh->mFaces[i].mNumIndices = 3;
-            pMesh->mFaces[i].mIndices = new unsigned int [3];
+    }
+    const int numTriangles = mesh->numTriangles();
+    DEBUG_STREAM(" numTriangles : " << numTriangles);
+    DEBUG_STREAM(" faceVertexIndices : " << mesh->faceVertexIndices().size());
+    pMesh->mNumFaces = numTriangles;
+    pMesh->mFaces = new aiFace[numTriangles];
+    for(size_t i = 0; i < numTriangles; i++) {
+        SgMesh::TriangleRef tri = mesh->triangle(i);
+        pMesh->mFaces[i].mNumIndices = 3;
+        pMesh->mFaces[i].mIndices = new unsigned int [3];
 
-            pMesh->mFaces[i].mIndices[0] = tri[0];
-            pMesh->mFaces[i].mIndices[1] = tri[1];
-            pMesh->mFaces[i].mIndices[2] = tri[2];
-        }
-        vec_mesh.push_back(pMesh);
-        { // Material
-            SgMaterial *material_ = shape->material();
-            aiMaterial* pcMat = new aiMaterial();
-            aiString s; s.Set (AI_DEFAULT_MATERIAL_NAME);
-            pcMat->AddProperty (&s, AI_MATKEY_NAME);
-            const Vector3f &col_dif = material_->diffuseColor();
-            aiColor4D colorDiffuse(col_dif[0], col_dif[1], col_dif[2], 1.0f);
-            pcMat->AddProperty (&colorDiffuse, 1, AI_MATKEY_COLOR_DIFFUSE);
-            const Vector3f &col_spe = material_->specularColor();
-            aiColor4D colorSpecular(col_spe[0], col_spe[1], col_spe[2], 1.0f);
-            pcMat->AddProperty (&colorSpecular, 1, AI_MATKEY_COLOR_SPECULAR);
-            const Vector3f &col_emi = material_->emissiveColor();
-            aiColor4D colorEmissive(col_emi[0], col_emi[1], col_emi[2], 1.0f);
-            pcMat->AddProperty (&colorEmissive, 1, AI_MATKEY_COLOR_EMISSIVE);
-            float ambi = material_->ambientIntensity();
-            aiColor4D colorAmbient(ambi*col_dif[0], ambi*col_dif[1], ambi*col_dif[2], 1.0f);
-            pcMat->AddProperty (&colorAmbient, 1, AI_MATKEY_COLOR_AMBIENT);
-            float transp = material_->transparency();
-            pcMat->AddProperty (&transp, 1, AI_MATKEY_COLOR_TRANSPARENT);
+        pMesh->mFaces[i].mIndices[0] = tri[0];
+        pMesh->mFaces[i].mIndices[1] = tri[1];
+        pMesh->mFaces[i].mIndices[2] = tri[2];
+    }
+    vec_mesh.push_back(pMesh);
+    { // Material
+        SgMaterial *material_ = shape->material();
+        aiMaterial* pcMat = new aiMaterial();
+        aiString s; s.Set (AI_DEFAULT_MATERIAL_NAME);
+        pcMat->AddProperty (&s, AI_MATKEY_NAME);
+        const Vector3f &col_dif = material_->diffuseColor();
+        aiColor4D colorDiffuse(col_dif[0], col_dif[1], col_dif[2], 1.0f);
+        pcMat->AddProperty (&colorDiffuse, 1, AI_MATKEY_COLOR_DIFFUSE);
+        const Vector3f &col_spe = material_->specularColor();
+        aiColor4D colorSpecular(col_spe[0], col_spe[1], col_spe[2], 1.0f);
+        pcMat->AddProperty (&colorSpecular, 1, AI_MATKEY_COLOR_SPECULAR);
+        const Vector3f &col_emi = material_->emissiveColor();
+        aiColor4D colorEmissive(col_emi[0], col_emi[1], col_emi[2], 1.0f);
+        pcMat->AddProperty (&colorEmissive, 1, AI_MATKEY_COLOR_EMISSIVE);
+        float ambi = material_->ambientIntensity();
+        aiColor4D colorAmbient(ambi*col_dif[0], ambi*col_dif[1], ambi*col_dif[2], 1.0f);
+        pcMat->AddProperty (&colorAmbient, 1, AI_MATKEY_COLOR_AMBIENT);
+        float transp = material_->transparency();
+        pcMat->AddProperty (&transp, 1, AI_MATKEY_COLOR_TRANSPARENT);
 
-            vec_material.push_back(pcMat);
-            pMesh->mMaterialIndex = vec_material.size() - 1;
-        }
-    } else if (primitive_to_mesh) {
-#if 0
-        // mesh generate
-        //// not implemented yet
-#endif
+        vec_material.push_back(pcMat);
+        pMesh->mMaterialIndex = vec_material.size() - 1;
     }
 }
 aiScene *AssimpSceneWriter::Impl::createScene()

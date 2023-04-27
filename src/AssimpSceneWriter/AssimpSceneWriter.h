@@ -23,8 +23,8 @@ public:
 
     void setOutputType(const std::string& _type);
     const std::string &getOutputType();
-
-    //void setVerbose(bool on);
+    void setVerbose(bool on);
+    void generatePrimitiveMesh(bool on);
 protected:
     //bool findOrCopyImageFile(SgImage* image, const std::string& outputBaseDir);
     //std::ostream& os(){ return *os_; }
