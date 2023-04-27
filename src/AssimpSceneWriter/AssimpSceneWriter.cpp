@@ -15,12 +15,13 @@ using namespace cnoid;
 //using fmt::format;
 //namespace filesystem = cnoid::stdx::filesystem;
 
-#if 0
+#if 1
 #include <iostream>
 #define DEBUG_STREAM(args) \
     std::cerr << "[" << __PRETTY_FUNCTION__ << "]" << args << std::endl
 #else
-#define DEBUG_STREAM(args)
+#define DEBUG_STREAM(args) \
+    if(verbose) { self->os() << "[" << __PRETTY_FUNCTION__ << "]" << args << std::endl; }
 #endif
 
 namespace {
@@ -34,17 +35,15 @@ namespace cnoid {
 class AssimpSceneWriter::Impl
 {
 public:
-    ostream* os_;
-    ostream& os() { return *os_; }
+    AssimpSceneWriter *self;
 
-    Impl();
+    Impl(AssimpSceneWriter *_self);
 
     void copyConfigurations(const Impl* org);
 
     std::string output_type;
-
     bool primitive_to_mesh;
-
+    bool verbose;
     std::vector<aiMesh*> vec_mesh;
     std::vector<aiMaterial*> vec_material;
     //// assimp
@@ -69,11 +68,12 @@ public:
 
 AssimpSceneWriter::AssimpSceneWriter()
 {
-    impl = new Impl();
+    impl = new Impl(this);
 }
-AssimpSceneWriter::Impl::Impl()
+AssimpSceneWriter::Impl::Impl(AssimpSceneWriter *_self) : self(_self)
 {
-    os_ = &nullout();
+    primitive_to_mesh = false;
+    verbose = false;
 }
 AssimpSceneWriter::AssimpSceneWriter(const AssimpSceneWriter& org)
     : AssimpSceneWriter()
@@ -82,7 +82,9 @@ AssimpSceneWriter::AssimpSceneWriter(const AssimpSceneWriter& org)
 }
 void AssimpSceneWriter::Impl::copyConfigurations(const Impl* org)
 {
-    os_ = org->os_;
+    output_type = org->output_type;
+    primitive_to_mesh = org->primitive_to_mesh;
+    verbose = org->verbose;
 }
 AssimpSceneWriter::~AssimpSceneWriter()
 {
@@ -112,9 +114,11 @@ bool AssimpSceneWriter::writeScene(const std::string& filename, SgNode* node)
     impl->extractMeshSgNode(node);
     aiScene *res_ = impl->createScene();
     if(!res_) {
+        DEBUG_STREAM("hoge 0");
         return false;
     }
     bool ret_ = impl->storeScene(res_, filename, impl->output_type);
+    DEBUG_STREAM("hoge 1 : " << ret_);
     delete res_;
     return ret_;
 }
@@ -162,7 +166,7 @@ void AssimpSceneWriter::Impl::addMesh()
                         pMesh->mNormals[idx].z = n.z();
                     }
                 } else {
-                    *os_ << "AssimpSceneWriter: parse error! (normals/indices)" << std::endl;
+                    self->os() << "AssimpSceneWriter: parse error! (normals/indices)" << std::endl;
                 }
             } else {
                 if(numNormals == pMesh->mNumVertices) {
@@ -175,7 +179,7 @@ void AssimpSceneWriter::Impl::addMesh()
                         pMesh->mNormals[k].z = n.z();
                     }
                 } else {
-                    *os_ << "AssimpSceneWriter: parse error! (normals)" << std::endl;
+                    self->os() << "AssimpSceneWriter: parse error! (normals)" << std::endl;
                 }
             }
         }
@@ -201,7 +205,7 @@ void AssimpSceneWriter::Impl::addMesh()
                         acol_.a = 1.0;
                     }
                 } else {
-                    *os_ << "AssimpSceneWriter: parse error! (colors/indices)" << std::endl;
+                    self->os() << "AssimpSceneWriter: parse error! (colors/indices)" << std::endl;
                 }
             } else {
                 if(numColors == pMesh->mNumVertices) {
@@ -215,7 +219,7 @@ void AssimpSceneWriter::Impl::addMesh()
                         acol_.a = 1.0;
                     }
                 } else {
-                    *os_ << "AssimpSceneWriter: parse error! (colors)" << std::endl;
+                    self->os() << "AssimpSceneWriter: parse error! (colors)" << std::endl;
                 }
            }
         }
@@ -325,7 +329,7 @@ bool AssimpSceneWriter::Impl::storeScene(aiScene *_pscene, const std::string &_f
         if (s != std::string::npos) {
             outext = outf.substr (s+1);
         } else {
-            *os_ << ";; Can not find extention: " << outf << std::endl;
+            self->os() << ";; Can not find extention: " << outf << std::endl;
         }
     }
     Assimp::Exporter exporter;

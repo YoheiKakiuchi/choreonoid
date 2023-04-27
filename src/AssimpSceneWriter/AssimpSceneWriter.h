@@ -17,14 +17,18 @@ public:
     AssimpSceneWriter& operator=(const AssimpSceneWriter&) = delete;
     AssimpSceneWriter& operator=(AssimpSceneWriter&&) = delete;
 
-    //void setMessageSink(std::ostream& os) override;
     virtual bool writeScene(const std::string& filename, SgNode* node) override;
+    //virtual void setMessageSink(std::ostream& os) override;
+    using AbstractSceneWriter::setMessageSink;
 
     void setOutputType(const std::string& _type);
     const std::string &getOutputType();
+
+    //void setVerbose(bool on);
 protected:
     //bool findOrCopyImageFile(SgImage* image, const std::string& outputBaseDir);
     //std::ostream& os(){ return *os_; }
+    using AbstractSceneWriter::os;
 
 private:
     class Impl;
