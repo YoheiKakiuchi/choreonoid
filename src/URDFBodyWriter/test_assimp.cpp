@@ -12,13 +12,15 @@ int main(int argc, char **argv)
 {
     AssimpSceneWriter asw;
     asw.setMessageSink(std::cerr);
-    //asw.setVerbose(true);
+    asw.setVerbose(true);
+    asw.generatePrimitiveMesh(true);
 
     BodyLoader bl;
     bl.setMessageSink(std::cerr);
     bl.setVerbose(true);
 
-    Body *bd = bl.load("/home/irsl/src/choreonoid/share/model/AizuSpider/AizuSpiderSS.body");
+    //Body *bd = bl.load("/home/leus/src/choreonoid/share/model/AizuSpider/AizuSpiderSS.body");
+    Body *bd = bl.load("/home/leus/src/choreonoid/share/model/SR1/SR1.body");
 
     if (!bd) {
         std::cerr << "body open error!" << std::endl;
