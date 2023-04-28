@@ -10,6 +10,7 @@
 #include <cnoid/MeshGenerator>
 
 #include <vector>
+#include <iostream>
 
 using namespace std;
 using namespace cnoid;
@@ -17,7 +18,6 @@ using namespace cnoid;
 //namespace filesystem = cnoid::stdx::filesystem;
 
 #if 0
-#include <iostream>
 #define DEBUG_STREAM(args) \
     std::cerr << "[" << __PRETTY_FUNCTION__ << "]" << args << std::endl
 #else
@@ -47,6 +47,7 @@ public:
     bool verbose;
     std::vector<aiMesh*> vec_mesh;
     std::vector<aiMaterial*> vec_material;
+
     //// assimp
     MeshExtractor meshExtractor;
     void callbackMesh();
@@ -68,31 +69,20 @@ public:
 
 }
 
+////
 AssimpSceneWriter::AssimpSceneWriter()
 {
     impl = new Impl(this);
-}
-AssimpSceneWriter::Impl::Impl(AssimpSceneWriter *_self) : self(_self)
-{
-    generate_primitive_mesh = false;
-    verbose = false;
 }
 AssimpSceneWriter::AssimpSceneWriter(const AssimpSceneWriter& org)
     : AssimpSceneWriter()
 {
     impl->copyConfigurations(org.impl);
 }
-void AssimpSceneWriter::Impl::copyConfigurations(const Impl* org)
-{
-    output_type = org->output_type;
-    generate_primitive_mesh = org->generate_primitive_mesh;
-    verbose = org->verbose;
-}
 AssimpSceneWriter::~AssimpSceneWriter()
 {
     delete impl;
 }
-
 void AssimpSceneWriter::setOutputType(const std::string& _type)
 {
     impl->output_type = _type;
@@ -109,16 +99,10 @@ void AssimpSceneWriter::generatePrimitiveMesh(bool on)
 {
     impl->generate_primitive_mesh = on;
 }
-////////
-//// normal
-// choreonoid vertex_array, normal_array, normal_index, index_array(triangle x 3)
-//   index = index_array[n] ( 0 <= n < triangle * 3 )
-//   vertex = vertex_array[index]
-//   normal = normal_array[normal_index[index]]
-// assimp vertex_array, normal_array, index_array(triangle * 3)
-//   index = index_array[n] ( 0 <= n < triangle * 3 )
-//   vertex = vertex_array[index]
-//   normal = normal_array[index]
+void AssimpSceneWriter::setMessageSinkStdErr()
+{
+    setMessageSink(std::cerr);
+}
 bool AssimpSceneWriter::writeScene(const std::string& filename, SgNode* node)
 {
     impl->extractMeshSgNode(node);
@@ -129,6 +113,19 @@ bool AssimpSceneWriter::writeScene(const std::string& filename, SgNode* node)
     bool ret_ = impl->storeScene(res_, filename, impl->output_type);
     delete res_;
     return ret_;
+}
+
+//// Impl
+AssimpSceneWriter::Impl::Impl(AssimpSceneWriter *_self) : self(_self)
+{
+    generate_primitive_mesh = false;
+    verbose = false;
+}
+void AssimpSceneWriter::Impl::copyConfigurations(const Impl* org)
+{
+    output_type = org->output_type;
+    generate_primitive_mesh = org->generate_primitive_mesh;
+    verbose = org->verbose;
 }
 void AssimpSceneWriter::Impl::callbackMesh()
 {
@@ -178,6 +175,16 @@ void AssimpSceneWriter::Impl::callbackMesh()
         addMesh(gmesh);
     }
 }
+////////
+//// normal
+// choreonoid vertex_array, normal_array, normal_index, index_array(triangle x 3)
+//   index = index_array[n] ( 0 <= n < triangle * 3 )
+//   vertex = vertex_array[index]
+//   normal = normal_array[normal_index[index]]
+// assimp vertex_array, normal_array, index_array(triangle * 3)
+//   index = index_array[n] ( 0 <= n < triangle * 3 )
+//   vertex = vertex_array[index]
+//   normal = normal_array[index]
 void AssimpSceneWriter::Impl::addMesh(SgMesh *mesh)
 {
     DEBUG_STREAM(" addMesh");
