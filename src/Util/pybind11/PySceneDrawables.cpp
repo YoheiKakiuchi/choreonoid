@@ -54,7 +54,19 @@ void exportPySceneDrawables(py::module& m)
 
     sgMesh
         .def(py::init<>())
-        ;
+    .def("updateBoundingBox", &SgMesh::updateBoundingBox)
+    .def("hasVertices", &SgMesh::hasVertices)
+    .def("hasNormals", &SgMesh::hasNormals)
+    .def("hasColors", &SgMesh::hasColors)
+    .def("hasTexCoords", &SgMesh::hasTexCoords)
+    .def("hasFaceVertexIndices", &SgMesh::hasFaceVertexIndices)
+    .def("hasNormalIndices", &SgMesh::hasNormalIndices)
+    .def("hasColorIndices", &SgMesh::hasColorIndices)
+    .def("hasTexCoordIndices", &SgMesh::hasTexCoordIndices)
+    .def("creaseAngle", &SgMesh::creaseAngle)
+    .def("isSolid", &SgMesh::isSolid)
+    ;
+    //const BoundingBox& boundingBox() const { return bbox; }
     
     py::class_<SgShape, SgShapePtr, SgNode>(m, "SgShape")
         .def(py::init<>())
