@@ -1,10 +1,10 @@
 #include "URDFBodyWriter.h"
 
-#include <cnoid/AssimpSceneWriter>
-
-#include <cnoid/NullOut>
-#include <cnoid/MeshExtractor>
 #include <cnoid/EigenUtil>
+#include <cnoid/NullOut>
+#include <cnoid/SceneDrawables>
+#include <cnoid/MeshExtractor>
+#include <cnoid/AssimpSceneWriter>
 
 #include <pugixml.hpp>
 
@@ -51,15 +51,15 @@ public:
     bool use_offset;
 
     std::string robot_name;
+    std::string mesh_file_prefix;
 protected:
     void addXacroScripts(pugi::xml_node &_node);
-    void addTransMission(pugi::xml_node &_node, const std::string &_joint_name, bool useXacro);
+    void addTransmission(pugi::xml_node &_node, const std::string &_joint_name);
 
     void addGeometry(pugi::xml_node &_node, const cnoid::Link *_lk, bool isVisual);
     void addMassParam(pugi::xml_node &_node, const cnoid::Link *_lk);
-
-    //void addLink
-    //void addJoint
+    // void addMaterial(pugi::xml_node &_node, xxxx);
+    void extractPrimitiveGeometry(MeshExtractor &_me, pugi::xml_node &_node, bool isVisual);
 };
 
 };  // namespace cnoid
@@ -70,16 +70,188 @@ URDFBodyWriter::Impl::Impl()
     use_geometry = true;
     use_offset = true;
 }
-void URDFBodyWriter::Impl::addXacroScripts(pugi::xml_node &_node)
+void URDFBodyWriter::Impl::addXacroScripts(pugi::xml_node &_root)
 {
+    _root.append_attribute("xmlns:xi"        ) = "http://www.w3.org/2001/Xinclude";
+    _root.append_attribute("xmlns:gazebo"    ) = "http://playerstage.sourceforge.net/gazebo/xmlschema/#gz";
+    _root.append_attribute("xmlns:model"     ) = "http://playerstage.sourceforge.net/gazebo/xmlschema/#model";
+    _root.append_attribute("xmlns:sensor"    ) = "http://playerstage.sourceforge.net/gazebo/xmlschema/#sensor";
+    _root.append_attribute("xmlns:body"      ) = "http://playerstage.sourceforge.net/gazebo/xmlschema/#body";
+    _root.append_attribute("xmlns:geom"      ) = "http://playerstage.sourceforge.net/gazebo/xmlschema/#geom";
+    _root.append_attribute("xmlns:joint"     ) = "http://playerstage.sourceforge.net/gazebo/xmlschema/#joint";
+    _root.append_attribute("xmlns:interface" ) = "http://playerstage.sourceforge.net/gazebo/xmlschema/#interface";
+    _root.append_attribute("xmlns:rendering" ) = "http://playerstage.sourceforge.net/gazebo/xmlschema/#rendering";
+    _root.append_attribute("xmlns:renderable") = "http://playerstage.sourceforge.net/gazebo/xmlschema/#renderable";
+    _root.append_attribute("xmlns:controller") = "http://playerstage.sourceforge.net/gazebo/xmlschema/#controller";
+    _root.append_attribute("xmlns:physics"   ) = "http://playerstage.sourceforge.net/gazebo/xmlschema/#physics";
+    _root.append_attribute("xmlns:xacro"     ) = "http://www.ros.org/wiki/xacro";
+
+    {
+    pugi::xml_node xac = _root.append_child("xacro:macro");
+    xac.append_attribute("name") = "gz_trans_pos";
+    xac.append_attribute("params") = "joint_name";
+    pugi::xml_node trans = xac.append_child("transmission");
+    trans.append_attribute("name") = "${joint_name}_trans";
+    trans.append_child("type")
+         .append_child(pugi::node_pcdata)
+         .set_value("transmission_interface/SimpleTransmission");
+    pugi::xml_node t_joint = trans.append_child("joint");
+    t_joint.append_attribute("name") = "${joint_name}";
+    t_joint.append_child("hardwareInterface")
+           .append_child(pugi::node_pcdata)
+           .set_value("hardware_interface/PositionJointInterface</hardwareInterface");
+    pugi::xml_node t_act   = trans.append_child("actuator");
+    t_act.append_attribute("name") = "${joint_name}_motor";
+    t_act.append_child("hardwareInterface")
+         .append_child(pugi::node_pcdata)
+         .set_value("hardware_interface/PositionJointInterface</hardwareInterface");
+    }
+
+    {
+    pugi::xml_node xac = _root.append_child("xacro:macro");
+    xac.append_attribute("name") = "gz_trans_vel";
+    xac.append_attribute("params") = "joint_name";
+    pugi::xml_node trans = xac.append_child("transmission");
+    trans.append_attribute("name") = "${joint_name}_trans";
+    trans.append_child("type")
+         .append_child(pugi::node_pcdata)
+         .set_value("transmission_interface/SimpleTransmission");
+    pugi::xml_node t_joint = trans.append_child("joint");
+    t_joint.append_attribute("name") = "${joint_name}";
+    t_joint.append_child("hardwareInterface")
+           .append_child(pugi::node_pcdata)
+           .set_value("hardware_interface/VelocityJointInterface</hardwareInterface");
+    pugi::xml_node t_act   = trans.append_child("actuator");
+    t_act.append_attribute("name") = "${joint_name}_motor";
+    t_act.append_child("hardwareInterface")
+         .append_child(pugi::node_pcdata)
+         .set_value("hardware_interface/VelocityJointInterface</hardwareInterface");
+    }
+
+    {
+    pugi::xml_node xac = _root.append_child("xacro:macro");
+    xac.append_attribute("name") = "gz_trans_eff";
+    xac.append_attribute("params") = "joint_name";
+    pugi::xml_node trans = xac.append_child("transmission");
+    trans.append_attribute("name") = "${joint_name}_trans";
+    trans.append_child("type")
+         .append_child(pugi::node_pcdata)
+         .set_value("transmission_interface/SimpleTransmission");
+    pugi::xml_node t_joint = trans.append_child("joint");
+    t_joint.append_attribute("name") = "${joint_name}";
+    t_joint.append_child("hardwareInterface")
+           .append_child(pugi::node_pcdata)
+           .set_value("hardware_interface/EffortJointInterface</hardwareInterface");
+    pugi::xml_node t_act   = trans.append_child("actuator");
+    t_act.append_attribute("name") = "${joint_name}_motor";
+    t_act.append_child("hardwareInterface")
+         .append_child(pugi::node_pcdata)
+         .set_value("hardware_interface/EffortJointInterface</hardwareInterface");
+    }
 }
 void URDFBodyWriter::Impl::addGeometry(pugi::xml_node &_node, const cnoid::Link *_lk, bool isVisual)
 {
+    if(isVisual) {
+        MeshExtractor me_;
+        me_.extract(_lk->visualShape(), [this, &me_, &_node](){ extractPrimitiveGeometry(me_, _node, true); });
+
+        AssimpSceneWriter asw;
+        bool res_ =  asw.writeScene("/tmp/hoge.stl", _lk->visualShape());
+        if (res_) {
+
+        }
+    } else {
+        MeshExtractor me_;
+        me_.extract(_lk->collisionShape(), [this, &me_, &_node](){ extractPrimitiveGeometry(me_, _node, false); });
+
+        AssimpSceneWriter asw;
+        bool res_ =  asw.writeScene("/tmp/hoge.stl", _lk->collisionShape());
+        if (res_) {
+
+        }
+    }
+}
+void URDFBodyWriter::Impl::extractPrimitiveGeometry(MeshExtractor &_me, pugi::xml_node &_node, bool isVisual)
+{
+    SgMesh* mesh = _me.currentMesh();
+    if(mesh->primitiveType() != SgMesh::BOX &&
+       mesh->primitiveType() != SgMesh::CYLINDER &&
+       mesh->primitiveType() != SgMesh::SPHERE ) {
+        return;
+    }
+    SgShape* shape = _me.currentShape();
+    const Affine3& T = _me.currentTransform();
+    const Isometry3 &Ti = _me.currentTransformWithoutScaling();
+#if 0
+        //origin
+    {
+        Vector3 trs_ = Ti.translation();
+        Matrix3 mat_ = Ti.linear();
+        Vector3 rpy_ = cnoid::rpyFromRot(mat_);
+        strm << "<origin xyz="; _print_vector(trs_, strm);
+        strm << " rpy="; _print_vector(rpy_, strm);
+        strm << "/>";
+    }
+    switch(mesh->primitiveType()) {
+    case SgMesh::BOX:
+    {
+        SgMesh::Box bx = mesh->primitive<SgMesh::Box>();
+        //bx.size
+        strm << "<geometry><box size=";
+        _print_vector(bx.size, strm);
+        strm << "/></geometry>" << std::endl;
+        // material
+    }
+    break;
+    case SgMesh::CYLINDER:
+    {
+        SgMesh::Cylinder cyl = mesh->primitive<SgMesh::Cylinder>();
+        //cyl.radius;
+        //cyl.height
+        //strm << "<origin />";
+        strm << "<geometry><cylinder radius=";
+        _print_float(cyl.radius, strm);
+        strm << " height=";
+        _print_float(cyl.height, strm);
+        strm << "/></geometry>" << std::endl;
+        // material
+    }
+    break;
+    case SgMesh::SPHERE:
+    {
+        SgMesh::Sphere sph = mesh->primitive<SgMesh::Sphere>();
+        //sph.radius
+        //strm << "<origin />";
+        strm << "<geometry><shpere radius=";
+        _print_float(sph.radius, strm);
+        strm << "/></geometry>" << std::endl;
+        // material
+    }
+    break;
+    }
+#endif
 }
 void URDFBodyWriter::Impl::addMassParam(pugi::xml_node &_node, const cnoid::Link *_lk)
 {
+    Vector3 com_ = _lk->centerOfMass();
+    Matrix3 Iner_ = _lk->I();
+    pugi::xml_node i_node = _node.append_child("inertial");
+
+    i_node.append_child("mass").append_attribute("value") = _lk->mass();
+
+    std::ostringstream oss;
+    _print_vector(com_, oss);
+    i_node.append_child("origin").append_attribute("xyz") = oss.str().c_str();
+
+    pugi::xml_node in_node = i_node.append_child("inertia");
+    in_node.append_attribute("ixx") = Iner_(0,0);
+    in_node.append_attribute("ixy") = Iner_(0,1);
+    in_node.append_attribute("ixz") = Iner_(0,2);
+    in_node.append_attribute("iyy") = Iner_(1,1);
+    in_node.append_attribute("iyz") = Iner_(1,2);
+    in_node.append_attribute("izz") = Iner_(2,2);
 }
-void URDFBodyWriter::Impl::addTransMission(pugi::xml_node &_node, const std::string &_joint_name, bool useXacro)
+void URDFBodyWriter::Impl::addTransmission(pugi::xml_node &_root, const std::string &_joint_name)
 {
 }
 bool URDFBodyWriter::Impl::writeBody(Body* _body, const std::string& _fname)
@@ -150,38 +322,38 @@ bool URDFBodyWriter::Impl::writeBody(Body* _body, const std::string& _fname)
 
             Matrix3 prot_inv = prot.transpose();
             Matrix3 trot = prot_inv * lrot;
-            Vector3 _xyz = prot_inv * (ltrans - ptrans);
-            Vector3 _rpy = cnoid::rpyFromRot(trot);
+            Vector3 xyz_ = prot_inv * (ltrans - ptrans);
+            Vector3 rpy_ = cnoid::rpyFromRot(trot);
 
             pugi::xml_node o_node = joint_node.append_child("origin");
-            //ostrm << "<origin xyz=";
-            //_print_vector(_xyz, ostrm);
-            //ostrm << " rpy=";
-            //_print_vector(_rpy, ostrm);
-            //ostrm << "/>" << std::endl;
+            {
+                std::ostringstream oss;
+                _print_vector(xyz_, oss);
+                o_node.append_attribute("xyz") = oss.str().c_str();
+            }
+            {
+                std::ostringstream oss;
+                _print_vector(rpy_, oss);
+                o_node.append_attribute("rpy") = oss.str().c_str();
+            }
         }
 
         if(!cur_lk->isFixedJoint()) {
             if(use_offset) {
                 Vector3 ax_ = cur_lk->a();
                 pugi::xml_node ax_node = joint_node.append_child("axis");
-                //_indent(4, ostrm);
-                //ostrm << "<axis xyz=";
-                //_print_vector(ax_, ostrm);
-                //ostrm << "/>" << std::endl;
+                std::ostringstream oss;
+                _print_vector(ax_, oss);
+                ax_node.append_attribute("xyz") = oss.str().c_str();
             }
 
             pugi::xml_node lm_node = joint_node.append_child("limit");
-            // _indent(4, ostrm);
-            // ostrm << "<limit lower=";
-            // _print_float(lk->q_lower(), ostrm);
-            // ostrm << " upper=";
-            // _print_float(lk->q_upper(), ostrm);
-            // ostrm << " velocity=";
-            // _print_float(lk->dq_upper(), ostrm);
-            // ostrm << " effort=";
-            // _print_float(lk->u_upper(), ostrm);
-            // ostrm << "/>" << std::endl;
+            lm_node.append_attribute("lower") = cur_lk->q_lower();
+            lm_node.append_attribute("upper") = cur_lk->q_upper();
+            lm_node.append_attribute("velocity") = cur_lk->dq_upper();
+            lm_node.append_attribute("effort")   = cur_lk->u_upper();
+
+            addTransmission(root, cur_lk->jointName());
         }
     }
     doc.save_file(_fname.c_str());
