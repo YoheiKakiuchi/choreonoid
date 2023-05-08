@@ -1,10 +1,10 @@
-#include "URDFBodyWriter.h"
-
 #include <cnoid/EigenUtil>
 #include <cnoid/NullOut>
 #include <cnoid/SceneDrawables>
 #include <cnoid/MeshExtractor>
 #include <cnoid/AssimpSceneWriter>
+
+#include "URDFBodyWriter.h"
 
 #include <pugixml.hpp>
 
@@ -27,10 +27,9 @@ using namespace cnoid;
 inline void _print_vector(Vector3 &_vec, std::ostream &ostrm)
 {
     _SET_PRECISION(ostrm,12);
-    ostrm << "\"";
     ostrm << _vec.x() << " ";
     ostrm << _vec.y() << " ";
-    ostrm << _vec.z() << "\"";
+    ostrm << _vec.z();
     _UNSET_PRECISION(ostrm);
 }
 
@@ -47,11 +46,12 @@ public:
     std::ostream& os() { return *os_; }
 
     bool use_xacro;
-    bool use_geometry;
-    bool use_offset;
+    bool add_geometry;
+    bool add_offset;
 
     std::string robot_name;
     std::string mesh_file_prefix;
+    std::string mesh_url_prefix;
 protected:
     void addXacroScripts(pugi::xml_node &_node);
     void addTransmission(pugi::xml_node &_node, const std::string &_joint_name);
@@ -67,8 +67,8 @@ URDFBodyWriter::Impl::Impl()
 {
     os_ = &nullout();
     use_xacro = true;
-    use_geometry = true;
-    use_offset = true;
+    add_geometry = true;
+    add_offset = true;
 }
 void URDFBodyWriter::Impl::addXacroScripts(pugi::xml_node &_root)
 {
@@ -152,22 +152,29 @@ void URDFBodyWriter::Impl::addXacroScripts(pugi::xml_node &_root)
 void URDFBodyWriter::Impl::addGeometry(pugi::xml_node &_node, const cnoid::Link *_lk, bool isVisual)
 {
     if(isVisual) {
+        //// for primitive
         MeshExtractor me_;
         me_.extract(_lk->visualShape(), [this, &me_, &_node](){ extractPrimitiveGeometry(me_, _node, true); });
-
+        //// for mesh
+        std::string fname_ = "/tmp/hoge.dae";
         AssimpSceneWriter asw;
-        bool res_ =  asw.writeScene("/tmp/hoge.stl", _lk->visualShape());
+        bool res_ =  asw.writeScene(fname_, _lk->visualShape());
         if (res_) {
-
+            _node.append_child("visual").append_child("geometry")
+                 .append_child("mesh").append_attribute("file") = fname_.c_str();
         }
     } else {
+        //// for primitive
         MeshExtractor me_;
         me_.extract(_lk->collisionShape(), [this, &me_, &_node](){ extractPrimitiveGeometry(me_, _node, false); });
-
+        //// for mesh
+        std::string fname_ = "/tmp/hoge.stl";
         AssimpSceneWriter asw;
-        bool res_ =  asw.writeScene("/tmp/hoge.stl", _lk->collisionShape());
+        asw.setOutputType("stlb");
+        bool res_ =  asw.writeScene(fname_, _lk->collisionShape());
         if (res_) {
-
+            _node.append_child("collision").append_child("geometry")
+                 .append_child("mesh").append_attribute("file") = fname_.c_str();
         }
     }
 }
@@ -177,59 +184,74 @@ void URDFBodyWriter::Impl::extractPrimitiveGeometry(MeshExtractor &_me, pugi::xm
     if(mesh->primitiveType() != SgMesh::BOX &&
        mesh->primitiveType() != SgMesh::CYLINDER &&
        mesh->primitiveType() != SgMesh::SPHERE ) {
+        //// not primitive in URDF
+        // [TODO] Warning
         return;
     }
     SgShape* shape = _me.currentShape();
     const Affine3& T = _me.currentTransform();
     const Isometry3 &Ti = _me.currentTransformWithoutScaling();
-#if 0
-        //origin
+
+    pugi::xml_node cur_node;
+    if (isVisual) {
+        cur_node = _node.append_child("visual");
+    } else {
+        cur_node = _node.append_child("collision");
+    }
+    // origin
     {
         Vector3 trs_ = Ti.translation();
         Matrix3 mat_ = Ti.linear();
+        if(mesh->primitiveType() == SgMesh::CYLINDER) {
+            AngleAxis aa_(-PI_2, Vector3d::UnitX());
+            mat_ *= aa_.toRotationMatrix();
+        }
         Vector3 rpy_ = cnoid::rpyFromRot(mat_);
-        strm << "<origin xyz="; _print_vector(trs_, strm);
-        strm << " rpy="; _print_vector(rpy_, strm);
-        strm << "/>";
+        pugi::xml_node o_node = cur_node.append_child("origin");
+        {
+            std::ostringstream oss;
+            _print_vector(trs_, oss);
+            o_node.append_attribute("xyz") = oss.str().c_str();
+        }
+        {
+            std::ostringstream oss;
+            _print_vector(rpy_, oss);
+            o_node.append_attribute("rpy") = oss.str().c_str();
+        }
     }
+    // primitives
     switch(mesh->primitiveType()) {
     case SgMesh::BOX:
     {
         SgMesh::Box bx = mesh->primitive<SgMesh::Box>();
-        //bx.size
-        strm << "<geometry><box size=";
-        _print_vector(bx.size, strm);
-        strm << "/></geometry>" << std::endl;
-        // material
+        pugi::xml_node g_node = cur_node.append_child("geometry").append_child("box");
+
+        std::ostringstream oss;
+        _print_vector(bx.size, oss);
+        g_node.append_attribute("size") = oss.str().c_str();
     }
     break;
     case SgMesh::CYLINDER:
     {
         SgMesh::Cylinder cyl = mesh->primitive<SgMesh::Cylinder>();
-        //cyl.radius;
-        //cyl.height
-        //strm << "<origin />";
-        strm << "<geometry><cylinder radius=";
-        _print_float(cyl.radius, strm);
-        strm << " height=";
-        _print_float(cyl.height, strm);
-        strm << "/></geometry>" << std::endl;
-        // material
+        pugi::xml_node g_node = cur_node.append_child("geometry").append_child("cylinder");
+
+        g_node.append_attribute("radius") = cyl.radius;
+        g_node.append_attribute("length") = cyl.height;
     }
     break;
     case SgMesh::SPHERE:
     {
         SgMesh::Sphere sph = mesh->primitive<SgMesh::Sphere>();
-        //sph.radius
-        //strm << "<origin />";
-        strm << "<geometry><shpere radius=";
-        _print_float(sph.radius, strm);
-        strm << "/></geometry>" << std::endl;
-        // material
+        pugi::xml_node g_node = cur_node.append_child("geometry").append_child("sphere");
+
+        g_node.append_attribute("radius") = sph.radius;
     }
     break;
     }
-#endif
+
+    // material
+    // not implemented
 }
 void URDFBodyWriter::Impl::addMassParam(pugi::xml_node &_node, const cnoid::Link *_lk)
 {
@@ -253,13 +275,20 @@ void URDFBodyWriter::Impl::addMassParam(pugi::xml_node &_node, const cnoid::Link
 }
 void URDFBodyWriter::Impl::addTransmission(pugi::xml_node &_root, const std::string &_joint_name)
 {
+    if(use_xacro) {
+
+    } else {
+        
+    }
 }
 bool URDFBodyWriter::Impl::writeBody(Body* _body, const std::string& _fname)
 {
     pugi::xml_document doc;
     pugi::xml_node root = doc.append_child("robot");
 
-    std::string robot_name = _body->modelName();
+    if(robot_name.empty()) {
+        robot_name = _body->modelName();
+    }
     root.append_attribute("name") = robot_name.c_str();
 
     if (use_xacro) {
@@ -270,11 +299,9 @@ bool URDFBodyWriter::Impl::writeBody(Body* _body, const std::string& _fname)
         cnoid::Link *cur_lk = _body->link(i);
         pugi::xml_node link_node =  root.append_child("link");
         link_node.append_attribute("name") = cur_lk->name().c_str();
-        if (use_geometry) {
-            pugi::xml_node vis_node = link_node.append_child("visual");
-            addGeometry(vis_node, cur_lk, true);
-            pugi::xml_node col_node = link_node.append_child("collision");
-            addGeometry(col_node, cur_lk, false);
+        if (add_geometry) {
+            addGeometry(link_node, cur_lk, true);
+            addGeometry(link_node, cur_lk, false);
         }
 
         addMassParam(link_node, cur_lk);
@@ -314,7 +341,7 @@ bool URDFBodyWriter::Impl::writeBody(Body* _body, const std::string& _fname)
         //pt_node.append_attribute("link") = plk_->name();
         joint_node.append_child("child").append_attribute("link") = cur_lk->name().c_str();
 
-        if(use_offset) {
+        if(add_offset) {
             Isometry3::TranslationPart ltrans(cur_lk->translation());
             Isometry3::TranslationPart ptrans(plk_->translation());
             Matrix3 lrot(cur_lk->rotation());
@@ -339,7 +366,7 @@ bool URDFBodyWriter::Impl::writeBody(Body* _body, const std::string& _fname)
         }
 
         if(!cur_lk->isFixedJoint()) {
-            if(use_offset) {
+            if(add_offset) {
                 Vector3 ax_ = cur_lk->a();
                 pugi::xml_node ax_node = joint_node.append_child("axis");
                 std::ostringstream oss;
@@ -375,3 +402,9 @@ bool URDFBodyWriter::writeBody(Body* body, const std::string& filename)
 {
     return impl->writeBody(body, filename);
 }
+void URDFBodyWriter::setUseXacro(bool _on) { impl->use_xacro = _on; }
+void URDFBodyWriter::setAddGeometry(bool _on) { impl->add_geometry = _on; }
+void URDFBodyWriter::setAddOffset(bool _on) { impl->add_offset = _on; }
+void URDFBodyWriter::setRobotName(const std::string &_name) { impl->robot_name = _name; }
+void URDFBodyWriter::setMeshFilePrefix(const std::string &_pref) { impl->mesh_file_prefix = _pref; }
+void URDFBodyWriter::setMeshURLPrefix(const std::string &_pref)  { impl->mesh_url_prefix  = _pref; }

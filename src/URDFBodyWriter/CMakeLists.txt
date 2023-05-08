@@ -8,7 +8,7 @@ if(PUGIXML_STATIC_LIBRARY_DIRS)
 endif()
 
 choreonoid_add_library(CnoidURDFBodyWriter SHARED URDFBodyWriter.cpp HEADERS URDFBodyWriter.h)
-target_link_libraries(CnoidURDFBodyWriter CnoidBody ${PUGIXML_STATIC_LIBRARIES})
+target_link_libraries(CnoidURDFBodyWriter CnoidBody ${PUGIXML_STATIC_LIBRARIES} CnoidAssimpSceneWriter)
 
 add_executable(testxml test_xml.cpp)
 target_link_libraries(testxml ${PUGIXML_STATIC_LIBRARIES})
