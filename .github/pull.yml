@@ -9,4 +9,7 @@ rules:  # Array of rules
   - base: with_irsl_system
     upstream: choreonoid:master
     mergeMethod: merge
-### [TODO] add stable
+## irsl_patch
+  - base: devel
+    upstream: choreonoid:master
+    mergeMethod: merge
