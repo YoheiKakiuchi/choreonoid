@@ -12,6 +12,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <map>
+#include <iostream>
 
 using namespace std;
 using namespace cnoid;
@@ -95,6 +96,10 @@ AssimpSceneLoader::Impl* AssimpSceneLoader::getOrCreateImpl()
     return impl;
 }
 
+void AssimpSceneLoader::setMessageSinkStdErr()
+{
+    setMessageSink(std::cerr);
+}
 
 AssimpSceneLoader::Impl::Impl()
 {
