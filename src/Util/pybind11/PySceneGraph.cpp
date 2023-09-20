@@ -127,6 +127,15 @@ void exportPySceneGraph(py::module& m)
         .def("getRotation", (Isometry3::LinearPart (SgPosTransform::*)()) &SgPosTransform::rotation)
         ;
 
+    py::class_<SgScaleTransform, SgScaleTransformPtr, SgTransform>(m, "SgScaleTransform")
+    .def(py::init<>())
+    .def(py::init<double>())
+    .def(py::init<Vector3 &>())
+    .def("setScale", (void (SgScaleTransform::*)(double s)) &SgScaleTransform::setScale)
+    .def("setScale", [](SgScaleTransform &self, Vector3 &_in) {  self.setScale(_in); })
+    .def_property("scale", (Vector3 & (SgScaleTransform::*)()) &SgScaleTransform::scale, [](SgScaleTransform &self, Vector3 &_in) {  self.setScale(_in); })
+    ;
+
     py::class_<SgPreprocessed, SgPreprocessedPtr, SgNode>(m, "SgPreprocessed")
         ;
     
