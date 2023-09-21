@@ -80,11 +80,14 @@ void exportPySceneGraph(py::module& m)
         .def_property_readonly("empty", &SgGroup::empty)
         .def_property_readonly("numChildren", &SgGroup::numChildren)
         .def("clearChildren", &SgGroup::clearChildren, py::arg("update") = false)
-        .def_property_readonly("child", (SgNode*(SgGroup::*)(int)) &SgGroup::child)
+        .def_property_readonly("child", (SgNode*(SgGroup::*)(int)) &SgGroup::child)//TODO -> function
         .def("addChild",
              (void(SgGroup::*)(SgNode*, SgUpdateRef)) &SgGroup::addChild,
              py::arg("node"), py::arg("update") = false)
-
+        .def("contains", &SgGroup::contains)
+        .def("findChildIndex", &SgGroup::findChildIndex)
+        .def("removeChild", (bool (SgGroup::*)(SgNode*)) &SgGroup::removeChild)
+        .def("removeChildAt", &SgGroup::removeChildAt)
         // deprecated
         .def("isEmpty", &SgGroup::empty)
         .def("getNumChildren", &SgGroup::numChildren)
@@ -171,6 +174,20 @@ void exportPySceneGraph(py::module& m)
         .def_property("height", &SgOrthographicCamera::height, &SgOrthographicCamera::setHeight)
         .def("setHeight", &SgOrthographicCamera::setHeight)
         ;
+
+    py::class_<SgSwitch, SgSwitchPtr, SgObject>(m, "SgSwitch")
+    .def(py::init<bool>())
+    .def_property("turnedOn", &SgSwitch::isTurnedOn, &SgSwitch::setTurnedOn)
+    ;
+
+    py::class_<SgSwitchableGroup, SgSwitchableGroupPtr, SgGroup>(m, "SgSwitchableGroup")
+    .def(py::init<>())
+    .def(py::init<SgSwitch*>())
+    .def("setSwitch", &SgSwitchableGroup::setSwitch)
+    .def("setTurnedOn", &SgSwitchableGroup::setTurnedOn)
+    .def_property("turnedOn", &SgSwitchableGroup::isTurnedOn,
+                  [](SgSwitchableGroup &self, bool on) { self.setTurnedOn(on); })
+    ;
 }
 
 }
