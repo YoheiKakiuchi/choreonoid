@@ -21,7 +21,7 @@ void exportPySceneRenderer(py::module& m);
 void exportPyMeshUtils(py::module& m);
 void exportPyGeometryTypes(py::module& m);
 void exportPyTaskTypes(py::module& m);
-
+void exportPyYAML(py::module& m);
 }
 
 PYBIND11_MODULE(Util, m)

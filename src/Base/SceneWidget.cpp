@@ -1429,10 +1429,12 @@ EditableNodeInfo SceneWidget::Impl::applyEditableFunction
 
 bool SceneWidget::Impl::setFocusToEditablePath(vector<EditableNodeInfo>& editablePath)
 {
+    std::cerr << "sfep:in" << std::endl;
     if(editablePath.empty()){
         return false;
     }
-    
+
+    std::cerr << "sfep:0" << std::endl;
     int indexOfFirstEditableToChangeFocus = 0;
     for(size_t i=0; i < editablePath.size(); ++i){
         if(i < focusedEditablePath.size() && editablePath[i] == focusedEditablePath[i]){
@@ -1452,6 +1454,7 @@ bool SceneWidget::Impl::setFocusToEditablePath(vector<EditableNodeInfo>& editabl
     for(size_t i=indexOfFirstEditableToChangeFocus; i < editablePath.size(); ++i){
         editablePath[i].handler->onFocusChanged(&latestEvent, true);
     }
+    std::cerr << "sfep:1" << std::endl;
     focusedEditablePath = editablePath;
     focusedEditable = editablePath.back();
 
@@ -1503,26 +1506,35 @@ void SceneWidget::Impl::keyPressEvent(QKeyEvent* event)
     updateLatestEventPath();
 
     bool handled = false;
-
+    std::cerr << "kp" << std::endl;
     if(isEditMode){
+        std::cerr << "kp:e " << focusedEditablePath.size() << std::endl;
+        if(activeCustomModeHandler) {
+            handled = activeCustomModeHandler->onKeyPressEvent(&latestEvent);
+        }
         auto info = applyEditableFunction(
             focusedEditablePath,
             [&](SgNode* node, SceneWidgetEventHandler* handler){
                 bool handled = false;
+                std::cerr << "kp:l0" << std::endl;
                 if(customNodeEventHandler){
+                    std::cerr << "kp:l1" << std::endl;
                     handled = customNodeEventHandler(node, handler, &latestEvent);
                 }
                 if(!handled){
+                    std::cerr << "kp:l2" << std::endl;
                     handled = handler->onKeyPressEvent(&latestEvent);
                 }
                 return handled;
             });
         if(info){
+            std::cerr << "kp:info" << std::endl;
             handled = true;
         }
     }
 
     if(!handled){
+        std::cerr << "kp:!h" << std::endl;
         switch(event->key()){
 
         case Qt::Key_Escape:
@@ -1542,7 +1554,7 @@ void SceneWidget::Impl::keyPressEvent(QKeyEvent* event)
             
         case Qt::Key_Space:
         {
-            updateLastClickedPoint();
+         
             latestEvent.button_ = Qt::MiddleButton;
             startViewChange();
             handled = true;
@@ -1554,6 +1566,7 @@ void SceneWidget::Impl::keyPressEvent(QKeyEvent* event)
     }
 
     if(!handled){
+        std::cerr << "kp:!h2" << std::endl;
         event->setAccepted(false);
     }
 }
