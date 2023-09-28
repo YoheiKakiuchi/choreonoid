@@ -215,12 +215,19 @@ void exportPySceneDrawables(py::module& m)
             MatrixfRM mat(va_->size(), 3);
             for(int i = 0; i < va_->size(); i ++) mat.row(i) = va_->at(i);
             return mat; })
+    //sizeOfVertices
+    //appendVertex
+    //vertex(index)
+    //setVertex(index, v)
         .def("hasColors", &SgPlot::hasColors)
         .def("setColors", [](SgPlot &self, RefMatrixfRM mat) {
             // mat.cols() == 3
             int size = mat.rows();
             SgVertexArray *va_ = self.getOrCreateColors(size);
             for(int i = 0; i < size; i++) va_->at(i) = mat.row(i);  })
+    //appendColor
+    //color(index)
+    //setColor(index, v)
         .def_property_readonly("colors",  [](SgPlot &self) {
             SgVertexArray *va_ = self.colors();
             if (!va_) { MatrixfRM mat(0, 3); return mat; }
@@ -230,6 +237,9 @@ void exportPySceneDrawables(py::module& m)
         .def("hasColorIndices", [](SgPlot &self) { return !self.colorIndices().empty(); })
         .def_property("colorIndices", (SgIndexArray&(SgPlot::*)())&SgPlot::colorIndices,
                       [](SgPlot &self, std::vector<int> &_ind) { self.colorIndices() = _ind; })
+    //resizeIndices(n)
+    //index(int)
+    //setIndex(index, index)
         .def("hasNormals", &SgPlot::hasNormals)
         .def("setNormals", [](SgPlot &self, RefMatrixfRM mat) {
             // mat.cols() == 3
@@ -243,9 +253,15 @@ void exportPySceneDrawables(py::module& m)
             MatrixfRM mat(va_->size(), 3);
             for(int i = 0; i < va_->size(); i ++) mat.row(i) = va_->at(i);
             return mat; })
+    //appendColor
+    //color(index)
+    //setColor(index, v)
         .def("hasNormalIndices", [](SgPlot &self) { return !self.normalIndices().empty(); })
         .def_property("normalIndices", (SgIndexArray&(SgPlot::*)())&SgPlot::normalIndices,
                       [](SgPlot &self, std::vector<int> &_ind) { self.normalIndices() = _ind; })
+    //resizeIndices(n)
+    //index(int)
+    //setIndex(index, index)
         ;
 
     py::class_<SgPointSet, SgPointSetPtr, SgPlot>(m, "SgPointSet")
@@ -271,6 +287,13 @@ void exportPySceneDrawables(py::module& m)
             if (in.size() > 1) self.addLine(in[0], in[1]); })
         .def("resizeColorIndicesForNumLines", &SgLineSet::resizeColorIndicesForNumLines)
         .def("setLineColor", &SgLineSet::setLineColor)
+        ;
+
+    py::class_<SgText, SgTextPtr, SgNode>(m, "SgText")
+        .def(py::init<>())
+        .def_property("text", &SgText::text, &SgText::setText)
+        .def_property("textHeight", &SgText::textHeight, &SgText::setTextHeight)
+        .def_property("color", &SgText::color, [](SgText &self, Vector3f &_in) { self.setColor(_in); })
         ;
 }
 
