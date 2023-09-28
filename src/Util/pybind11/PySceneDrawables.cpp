@@ -18,18 +18,18 @@ void exportPySceneDrawables(py::module& m)
         .def("setAmbientIntensity", &SgMaterial::setAmbientIntensity)
         .def_property("diffuseColor",
                       &SgMaterial::diffuseColor,
-                      [](SgMaterial& self, const Vector3f c){ self.setDiffuseColor(c); })
-        .def("setDiffuseColor", [](SgMaterial& self, const Vector3f c){ self.setDiffuseColor(c); })
+                      [](SgMaterial& self, const Vector3f &c){ self.setDiffuseColor(c); })
+        .def("setDiffuseColor", [](SgMaterial& self, const Vector3f &c){ self.setDiffuseColor(c); })
         .def_property("emissiveColor",
                       &SgMaterial::emissiveColor,
-                      [](SgMaterial& self, const Vector3f c){ self.setEmissiveColor(c); })
-        .def("setEmissiveColor", [](SgMaterial& self, const Vector3f c){ self.setEmissiveColor(c); })
+                      [](SgMaterial& self, const Vector3f &c){ self.setEmissiveColor(c); })
+        .def("setEmissiveColor", [](SgMaterial& self, const Vector3f &c){ self.setEmissiveColor(c); })
         .def_property("specularExponent", &SgMaterial::specularExponent, &SgMaterial::specularExponent)
         .def("setSpecularExponent", &SgMaterial::setSpecularExponent)
         .def_property("specularColor",
                       &SgMaterial::specularColor,
-                      [](SgMaterial& self, const Vector3f c){ self.setSpecularColor(c); })
-        .def("setSpecularColor", [](SgMaterial& self, const Vector3f c){ self.setSpecularColor(c); })
+                      [](SgMaterial& self, const Vector3f &c){ self.setSpecularColor(c); })
+        .def("setSpecularColor", [](SgMaterial& self, const Vector3f &c){ self.setSpecularColor(c); })
         .def_property("transparency", &SgMaterial::transparency, &SgMaterial::setTransparency)
         .def("setTransparency", &SgMaterial::setTransparency)
         ;
@@ -203,6 +203,7 @@ void exportPySceneDrawables(py::module& m)
         .def_property("material", (SgMaterial* (SgPlot::*)()) &SgPlot::material, &SgPlot::setMaterial)
         .def("setMaterial", &SgPlot::setMaterial)
         .def("getOrCreateMaterial", &SgPlot::getOrCreateMaterial)
+        //vertex
         .def("hasVertices", &SgPlot::hasVertices)
         .def("setVertices", [](SgPlot &self, RefMatrixfRM mat) {
             // mat.cols() == 3
@@ -215,31 +216,36 @@ void exportPySceneDrawables(py::module& m)
             MatrixfRM mat(va_->size(), 3);
             for(int i = 0; i < va_->size(); i ++) mat.row(i) = va_->at(i);
             return mat; })
-    //sizeOfVertices
-    //appendVertex
-    //vertex(index)
-    //setVertex(index, v)
+        .def_property_readonly("sizeOfVertices", [](SgPlot &self) { return self.vertices()->size(); })
+        .def("appendVertex", [](SgPlot &self, const Vector3f &v) { self.vertices()->push_back(v); })
+        .def("vertex", [](SgPlot &self, int idx) { return self.vertices()->at(idx); })
+        .def("setVertex", [](SgPlot &self, int idx, const Vector3f &v) { self.vertices()->at(idx) = v; })
+        //color
         .def("hasColors", &SgPlot::hasColors)
         .def("setColors", [](SgPlot &self, RefMatrixfRM mat) {
             // mat.cols() == 3
             int size = mat.rows();
             SgVertexArray *va_ = self.getOrCreateColors(size);
             for(int i = 0; i < size; i++) va_->at(i) = mat.row(i);  })
-    //appendColor
-    //color(index)
-    //setColor(index, v)
         .def_property_readonly("colors",  [](SgPlot &self) {
             SgVertexArray *va_ = self.colors();
             if (!va_) { MatrixfRM mat(0, 3); return mat; }
             MatrixfRM mat(va_->size(), 3);
             for(int i = 0; i < va_->size(); i ++) mat.row(i) = va_->at(i);
             return mat; })
+        .def_property_readonly("sizeOfColors", [](SgPlot &self) { return self.colors()->size(); })
+        .def("appendColor", [](SgPlot &self, const Vector3f &v) { self.colors()->push_back(v); })
+        .def("color", [](SgPlot &self, int idx) { return self.colors()->at(idx); })
+        .def("setColor", [](SgPlot &self, int idx, const Vector3f &v) { self.colors()->at(idx) = v; })
+        //colorIndex
         .def("hasColorIndices", [](SgPlot &self) { return !self.colorIndices().empty(); })
         .def_property("colorIndices", (SgIndexArray&(SgPlot::*)())&SgPlot::colorIndices,
                       [](SgPlot &self, std::vector<int> &_ind) { self.colorIndices() = _ind; })
-    //resizeIndices(n)
-    //index(int)
-    //setIndex(index, index)
+        .def_property_readonly("sizeOfColorIndices", [](SgPlot &self){ return self.colorIndices().size(); })
+        .def("resizeColorIndices", [](SgPlot &self, int n) { self.colorIndices().resize(n); })
+        .def("getColorIndex", [](SgPlot &self, int idx) { self.colorIndices().at(idx); })
+        .def("setColorIndex", [](SgPlot &self, int idx, int colidx) { self.colorIndices().at(idx) = colidx; })
+        //normal
         .def("hasNormals", &SgPlot::hasNormals)
         .def("setNormals", [](SgPlot &self, RefMatrixfRM mat) {
             // mat.cols() == 3
@@ -253,15 +259,18 @@ void exportPySceneDrawables(py::module& m)
             MatrixfRM mat(va_->size(), 3);
             for(int i = 0; i < va_->size(); i ++) mat.row(i) = va_->at(i);
             return mat; })
-    //appendColor
-    //color(index)
-    //setColor(index, v)
+        .def_property_readonly("sizeOfNormals", [](SgPlot &self) { return self.normals()->size(); })
+        .def("appendNormal", [](SgPlot &self, const Vector3f &v) { self.normals()->push_back(v); })
+        .def("normal", [](SgPlot &self, int idx) { return self.normals()->at(idx); })
+        .def("setNormal", [](SgPlot &self, int idx, const Vector3f &v) { self.normals()->at(idx) = v; })
+        //normalIndex
         .def("hasNormalIndices", [](SgPlot &self) { return !self.normalIndices().empty(); })
         .def_property("normalIndices", (SgIndexArray&(SgPlot::*)())&SgPlot::normalIndices,
                       [](SgPlot &self, std::vector<int> &_ind) { self.normalIndices() = _ind; })
-    //resizeIndices(n)
-    //index(int)
-    //setIndex(index, index)
+        .def_property_readonly("sizeOfNormalIndices", [](SgPlot &self){ return self.normalIndices().size(); })
+        .def("resizeNormalIndices", [](SgPlot &self, int n) { self.normalIndices().resize(n); })
+        .def("getNormalIndex", [](SgPlot &self, int idx) { self.normalIndices().at(idx); })
+        .def("setNormalIndex", [](SgPlot &self, int idx, int nomidx) { self.normalIndices().at(idx) = nomidx; })
         ;
 
     py::class_<SgPointSet, SgPointSetPtr, SgPlot>(m, "SgPointSet")
