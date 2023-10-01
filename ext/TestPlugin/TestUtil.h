@@ -1,6 +1,6 @@
 #include <cnoid/SceneGraph>
 
-#include "exportdecl.h"
+#include "exportdecl_lib.h"
 
 namespace cnoid {
 

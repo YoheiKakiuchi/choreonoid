@@ -1,6 +1,6 @@
 #include <cnoid/Body>
 
-#include "exportdecl.h"
+#include "exportdecl_plugin.h"
 
 namespace cnoid {
 

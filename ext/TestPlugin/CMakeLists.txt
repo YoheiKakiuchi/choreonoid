@@ -1,9 +1,9 @@
 set(libsources
   TestUtil.cpp
   )
-set(headers
+set(libheaders
   TestUtil.h
-  exportdecl.h
+  exportdecl_lib.h
   )
 set(sources
   TestPlugin.cpp
@@ -11,7 +11,7 @@ set(sources
   )
 set(headers
   TestBody.h
-  exportdecl.h
+  exportdecl_plugin.h
   )
 
 set(target CnoidTestPlugin)
