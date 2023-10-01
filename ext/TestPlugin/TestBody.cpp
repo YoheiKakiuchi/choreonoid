@@ -1,27 +1,33 @@
 #include "TestBody.h"
-
+#include <iostream>
 using namespace cnoid;
 
-namespace {
+//namespace {
+//}
 
-}
-
-namespace cnoid {
+//namespace cnoid {
 
 TestBody::TestBody()
 {
+    std::cout << "Body" << std::endl;
+
+    Body bd("TestBody");
+    std::cout << "Body Name : " << bd.name() << std::endl;
+
     s_int = 31;
     s_double = 42.0;
 }
 
-TestBody::test0(int &i)
+bool TestBody::test0(int &i)
 {
     i = s_int;
+    return true;
 }
 
-TestBody::test1(double &b)
+bool TestBody::test1(double &b)
 {
     b = s_double;
+    return false;
 }
 
-}
+//}
