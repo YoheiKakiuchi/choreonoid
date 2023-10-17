@@ -93,6 +93,7 @@ public:
     python::object messageViewOut;
     python::object messageViewIn;
     python::module rollbackImporterModule;
+    bool terminate_when_scripts_finished;
 
     Impl(PythonPlugin* self);
     
@@ -139,7 +140,7 @@ PythonPlugin::PythonPlugin()
 PythonPlugin::Impl::Impl(PythonPlugin* self)
     : self(self)
 {
-
+    terminate_when_scripts_finished = false;
 }
 
 
@@ -181,6 +182,7 @@ bool PythonPlugin::Impl::initialize()
     PythonConsoleView::initializeClass(self);
     
     OptionManager& opm = self->optionManager();
+    opm.addOption("terminate", "terminate");
     opm.addOption("python,p", boost::program_options::value< vector<string> >(), "execute a python script");
     opm.addOption("python-item", boost::program_options::value< vector<string> >(), "load a python script as an item");
     opm.sigInputFileOptionsParsed(1).connect(
@@ -212,6 +214,9 @@ void PythonPlugin::Impl::onInputFileOptionsParsed(std::vector<std::string>& inpu
 
 void PythonPlugin::Impl::onSigOptionsParsed(boost::program_options::variables_map& v)
 {
+    if(v.count("terminate")) {
+        terminate_when_scripts_finished = true;
+    }
     if(v.count("python")){
         for(auto& script : v["python"].as<vector<string>>()){
             executeScriptFileOnStartup(toUTF8(script));
@@ -232,7 +237,7 @@ void PythonPlugin::Impl::onSigOptionsParsed(boost::program_options::variables_ma
 void PythonPlugin::Impl::executeScriptFileOnStartup(const string& scriptFile)
 {
     MessageView::instance()->putln(format(_("Executing python script \"{}\" ..."), scriptFile));
-    
+    int result = 0;
     auto& exec = executor();
     exec.execFile(scriptFile);
     if(!exec.hasException() || exec.isTerminated()){
@@ -241,6 +246,10 @@ void PythonPlugin::Impl::executeScriptFileOnStartup(const string& scriptFile)
         MessageView::instance()->putln(_("Failed to run the python script."), MessageView::Error);
         python::gil_scoped_acquire lock;
         MessageView::instance()->put(executor().exceptionText());
+        result = -1;
+    }
+    if (terminate_when_scripts_finished) {
+        App::exit(result);
     }
 
     App::checkErrorAndExitIfTestMode();
