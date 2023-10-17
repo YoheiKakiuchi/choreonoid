@@ -15,9 +15,20 @@ int execute(cnoid::App& app);
 
 #ifdef _WIN32
 #include <windows.h>
+#include <stdio.h>
+#include <iostream>
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+#if 0
+    if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
+        AllocConsole(); // allocate new console if launched from Explorer
+    }
+    freopen("CONIN$", "r", stdin);
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
+    std::cout << "### choreonoid with stream ###" << std::endl;
+#endif
     cnoid::App app(hInstance, hPrevInstance, lpCmdLine, nCmdShow, "Choreonoid", "Choreonoid");
     return execute(app);
 }
