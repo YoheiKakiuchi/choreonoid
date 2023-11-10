@@ -62,6 +62,7 @@ void exportBodyItem(py::module m)
         .def("setStance", &BodyItem::setStance)
 
         .def("notifyModelUpdate", &BodyItem::notifyModelUpdate)
+        .def("setBody", &BodyItem::setBody)
         // deprecated
         .def("enableCollisionDetection", &BodyItem::setCollisionDetectionEnabled)
         .def("enableSelfCollisionDetection", &BodyItem::setSelfCollisionDetectionEnabled)
