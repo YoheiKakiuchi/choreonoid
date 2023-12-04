@@ -717,6 +717,10 @@ void App::updateGui()
         QEventLoop::ExcludeUserInputEvents | QEventLoop::ExcludeSocketNotifiers, 1.0);
 }
 
+void App::processEvents()
+{
+    QCoreApplication::processEvents();
+}
 
 void AppUtil::updateGui()
 {
