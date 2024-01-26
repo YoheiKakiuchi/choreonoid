@@ -69,6 +69,9 @@ public:
     SgNode* convertAiMeshFaces(aiMesh* srcMesh);
     SgMaterial* convertAiMaterial(unsigned int);
     SgTexture* convertAiTexture(unsigned int index);
+
+    bool forceGenerateNormals;
+    float creaseAngle;
 };
 
 }
@@ -95,7 +98,14 @@ AssimpSceneLoader::Impl* AssimpSceneLoader::getOrCreateImpl()
     }
     return impl;
 }
-
+void AssimpSceneLoader::setCreaseAngle(float angle)
+{
+    impl->creaseAngle = angle;
+}
+void AssimpSceneLoader::setForceGenerateNormals(bool on)
+{
+    impl->forceGenerateNormals = on;
+}
 void AssimpSceneLoader::setMessageSinkStdErr()
 {
     setMessageSink(std::cerr);
@@ -109,6 +119,8 @@ AssimpSceneLoader::Impl::Impl()
 
     imageIO.setUpsideDown(true);
     os_ = &nullout();
+    forceGenerateNormals = false;
+    creaseAngle = 3.14159f;
 }
 
 
@@ -309,7 +321,7 @@ SgNode* AssimpSceneLoader::Impl::convertAiMeshFaces(aiMesh* srcMesh)
     }
 
     SgNormalArrayPtr normals;
-    if(srcMesh->HasNormals()){
+    if(!forceGenerateNormals && srcMesh->HasNormals()){
         const auto srcNormals = srcMesh->mNormals;
         normals = new SgNormalArray;
         normals->resize(numVertices);
@@ -417,7 +429,7 @@ SgNode* AssimpSceneLoader::Impl::convertAiMeshFaces(aiMesh* srcMesh)
         }
         */
         if(!normals){
-            meshFilter.generateNormals(mesh);
+            meshFilter.generateNormals(mesh, creaseAngle);
         }
 
         mesh->updateBoundingBox();
