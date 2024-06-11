@@ -564,6 +564,10 @@ public:
     void clearGLState();
     void setPointSize(float size);
     void setGlLineWidth(float width);
+
+    ///
+    bool setUserProjection;
+    Matrix4 userProjectionMatrix;
 };
 
 }
@@ -580,7 +584,7 @@ GLSLSceneRenderer::GLSLSceneRenderer(SgGroup* sceneRoot)
 GLSLSceneRenderer::Impl::Impl(GLSLSceneRenderer* self)
     : self(self)
 {
-
+    setUserProjection = false;
 }
 
 
@@ -1570,6 +1574,9 @@ bool GLSLSceneRenderer::Impl::renderShadowMap(SgLight* light, const Isometry3& T
 
 void GLSLSceneRenderer::Impl::renderCamera(SgCamera* camera, const Isometry3& cameraPosition)
 {
+    if (setUserProjection) {
+        projectionMatrix = userProjectionMatrix;
+    } else {
     if(SgPerspectiveCamera* pers = dynamic_cast<SgPerspectiveCamera*>(camera)){
         double aspectRatio = self->aspectRatio();
         self->getPerspectiveProjectionMatrix(
@@ -1588,7 +1595,7 @@ void GLSLSceneRenderer::Impl::renderCamera(SgCamera* camera, const Isometry3& ca
             radian(40.0), self->aspectRatio(), 0.01, 1.0e4,
             projectionMatrix);
     }
-
+    }////
     if(isUpsideDownEnabled){
         Isometry3 T = cameraPosition * AngleAxis(PI, Vector3(0.0, 0.0, 1.0));
         viewTransform = T.inverse(Eigen::Isometry);
@@ -3614,4 +3621,14 @@ void GLSLSceneRenderer::setLowMemoryConsumptionMode(bool on)
         impl->isLowMemoryConsumptionMode = on;
         requestToClearResources();
     }
+}
+////
+void GLSLSceneRenderer::setUserProjectionMatrix(Matrix4 &set_)
+{
+    impl->setUserProjection = true;
+    impl->userProjectionMatrix = set_;
+}
+void GLSLSceneRenderer::resetUserProjectionMatrix()
+{
+    impl->setUserProjection = false;
 }
