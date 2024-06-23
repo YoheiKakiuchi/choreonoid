@@ -40,6 +40,95 @@ const bool ENABLE_WARNING_FOR_FLIPPED_COORDINATE = false;
 
 namespace cnoid {
 
+static void printMaterialProperty(aiMaterialProperty *prop)
+{
+    std::cout << "  prop: " << prop->mKey.data << std::endl;
+    std::cout << "    sem: " << prop->mSemantic;
+    std::cout << ", idx: " << prop->mIndex;
+    std::cout << ", len: " << prop->mDataLength;
+    std::cout << ", type: " << prop->mType;
+    switch(prop->mType) {
+    case aiPTI_Float:
+    {
+        float fval = *(float *)(prop->mData);
+        std::cout << ", data: " << fval;
+    }
+    break;
+    case aiPTI_Double:
+    {
+        double dval = *(double *)(prop->mData);
+        std::cout << ", data: " << dval;
+    }
+    break;
+    case aiPTI_Integer:
+    {
+        int ival = *(int *)(prop->mData);
+        std::cout << ", data: " << ival;
+    }
+    break;
+    case aiPTI_String:
+    {
+        aiString *aistr = (aiString *)(prop->mData);
+        std::cout << ", data: " << aistr->data;
+    }
+    break;
+    case aiPTI_Buffer:
+    {
+        std::cout << ", data:";
+        unsigned char *buf = (unsigned char *)(prop->mData);
+        for(int i = 0; i < prop->mDataLength; i++) {
+            int vv = buf[i];
+            std::cout << " " << vv;
+        }
+    }
+    break;
+    }
+    //prop->mData;
+    std::cout << std::endl;
+}
+
+static void printMaterialSub(aiMaterial *mat, aiTextureType type)
+{
+    aiString aistr;
+    unsigned int cnt = mat->GetTextureCount(type);
+
+    for(unsigned int i = 0; i < cnt; i++) {
+        aiReturn ret = mat->GetTexture(type, i, &aistr, NULL, NULL, NULL, NULL, NULL);
+        std::cout << "  tex: type: " << type << ", path: " << aistr.data << std::endl;
+    }
+}
+static void printMaterial(aiMaterial *mat)
+{
+    std::cout << "aiMaterial : " << mat->GetName().data << std::endl;
+
+    printMaterialSub(mat, aiTextureType_NONE);
+    printMaterialSub(mat, aiTextureType_DIFFUSE);
+    printMaterialSub(mat, aiTextureType_SPECULAR);
+    printMaterialSub(mat, aiTextureType_AMBIENT);
+    printMaterialSub(mat, aiTextureType_EMISSIVE);
+    printMaterialSub(mat, aiTextureType_HEIGHT);
+    printMaterialSub(mat, aiTextureType_NORMALS);
+    printMaterialSub(mat, aiTextureType_SHININESS);
+    printMaterialSub(mat, aiTextureType_OPACITY);
+    printMaterialSub(mat, aiTextureType_DISPLACEMENT);
+    printMaterialSub(mat, aiTextureType_LIGHTMAP);
+    printMaterialSub(mat, aiTextureType_REFLECTION);
+    printMaterialSub(mat, aiTextureType_BASE_COLOR);
+    printMaterialSub(mat, aiTextureType_NORMAL_CAMERA);
+    printMaterialSub(mat, aiTextureType_EMISSION_COLOR);
+    printMaterialSub(mat, aiTextureType_METALNESS);
+    printMaterialSub(mat, aiTextureType_DIFFUSE_ROUGHNESS);
+    printMaterialSub(mat, aiTextureType_AMBIENT_OCCLUSION);
+    printMaterialSub(mat, aiTextureType_SHEEN);
+    printMaterialSub(mat, aiTextureType_CLEARCOAT);
+    printMaterialSub(mat, aiTextureType_TRANSMISSION);
+    printMaterialSub(mat, aiTextureType_UNKNOWN);
+
+    for(int i = 0; i < mat->mNumProperties; i++) {
+        printMaterialProperty(mat->mProperties[i]);
+    }
+}
+
 class AssimpSceneLoader::Impl
 {
 public:
@@ -171,7 +260,14 @@ SgNode* AssimpSceneLoader::Impl::load(const std::string& filename)
         }
         return nullptr;
     }
-
+    {
+        int numtex = scene->mNumTextures;
+        std::cout << "NumTextures : " << numtex << std::endl;
+        for(int i = 0; i < numtex; i++) {
+            const aiTexture *tex = scene->mTextures[i];
+            std::cout << "  tex[" << i << "]: (" << tex->achFormatHint << ") " << tex->mWidth << " x " << tex->mHeight << " / " << tex->mFilename.data << std::endl;
+        }
+    }
     filesystem::path path(fromUTF8(filename));
     directoryPath = path.remove_filename();
 
@@ -516,6 +612,7 @@ SgTexture* AssimpSceneLoader::Impl::convertAiTexture(unsigned int index)
     SgTexture* texture = nullptr;
     aiMaterial* srcMaterial = scene->mMaterials[index];
 
+    printMaterial(srcMaterial);
     if(srcMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0){
         aiString path;
         if(srcMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &path, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS){
