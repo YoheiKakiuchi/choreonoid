@@ -1,0 +1,469 @@
+## not merged commits
+
+Applying: [Assimp] add AssimpSceneWriter and python-binding for Assimp
+Applying: [Assimp] add docstring to python-bindings
+Applying: [Assimp]  FIX: AssimpSceneWriter to use original mesh
+Applying: [Assimp] FIX: AssimpSceneWriter use default material if SgNode does not have material
+Applying: [Assimp] FIX: error on windows build
+Applying: [Assimp] Add method ignoreURDFPrimitive to AssimpSceneWriter
+Applying: [AssimpPlugin] update assimp related code
+
+Applying: [pybind11/SceneDrawables] add SgText and update some methods
+Applying: [Util, PySceneDrawables.cpp] add mesh moving methods and setMeshType method
+Applying: [Util, PySceneDrawables.cpp] refactor Mesh,Plot methods
+
+
+## IRSL stable
+commit d5850c4cf4d9911cc535c4750a8990575d6bd301 (irsl/stable)
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Wed Mar 19 10:15:45 2025 +0900
+
+    [Body/pybind11] add device types and constructor
+
+## origin
+commit e39b70c71befb41e7c2006a585b44be5d4b0547d (origin/master, irsl/master, master)
+Merge: f5b2a850f 71940f321
+Author: Shin'ichiro Nakaoka <s.nakaoka@gmail.com>
+Date:   Thu Mar 27 19:56:15 2025 +0900
+
+    Merge pull request #48 from tkamioka/install_exportdecl_h
+
+    Install URDFBodyLoader/exportdecl.h
+
+--- log from origin/master
+commit 9bb72c779df5e3d1adbab0f8245e886c917f67fd
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Wed Mar 19 10:15:45 2025 +0900
+
+    [Body/pybind11] add device types and constructor
+
+commit 839d04b131a355fa478d5c3115108176fce7b618
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Thu Mar 13 11:36:43 2025 +0900
+
+    [Util, PySceneGraph] add clone method to SgGroup and SgPosTransform
+
+commit 38d95bd382a4d637e5f350178be5b38ae62fc0e4
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Mon Mar 10 13:29:07 2025 +0900
+
+    [Body, pybind11] add devices, Force, Acceleration, RateGyro, Imu
+
+commit 3e91005bde2d59af40fe1eca8f674107e0ae80fb
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Fri Mar 7 17:14:44 2025 +0900
+
+    [StdBodyWriter, pybind11] add not implemented methods
+
+commit 7265615c6d4876b198c5a0134697d9b2e4eb758b
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Fri Mar 7 17:14:00 2025 +0900
+
+    [BodyPlugin, pybind11] add  methods related to transparency to BodyItem
+
+commit 5fb766be93f9279da8b21dc27af1ddf66a769b63
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Mon Mar 3 13:17:25 2025 +0900
+
+    [body2urdf] fix default behavior
+
+commit e407fb30a3e643ae2c3c5656dd9516a7c0b24956
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Fri Feb 14 15:36:31 2025 +0900
+
+    [GLVisionSimulator, pybind11] fix module name
+
+commit 1cf0e4fa5227853600dbdc52aa7248a081061527
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Thu Jan 30 19:06:54 2025 +0900
+
+    [body2urdf] change option parser to CLI11
+
+commit 474934346a57288691e9361d5b770dc1d2fa99cf
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Thu Jan 30 19:05:36 2025 +0900
+
+    [PySceneGraph] Catching up changes of definitions
+
+commit 4a7c223a15423b730abab42135ee8b0e4af75445
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Mon Oct 7 10:03:23 2024 +0900
+
+    [WIP] fix loading URDF
+
+commit bbf3c8a5ddba582961ff845556200fea028d17eb
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Wed Nov 29 23:07:24 2023 +0900
+
+    [URDF] fix minor
+
+commit f9364ca98e16ce893c84aed2c6315cbc20da3b6f
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Wed Oct 18 14:37:37 2023 +0900
+
+    [URDF] add option, --no-primitive to body2urdf
+
+commit 0029dd028ad10d0fe81d88f80d9326741d7469b2
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Wed Oct 18 14:36:45 2023 +0900
+
+    [URDF] install choreonoid_body2urdf
+
+commit 8b1e81ae3fd4643262182def79f4c84b435b7bf1
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Tue Oct 17 18:30:15 2023 +0900
+
+    [URDF] ADD method setUseURDFPrimitiveGeometry to URDFBodyWriter
+
+commit 0405ba2ebbd5b1e3561edc9454300f2275ce28af
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Fri May 19 15:57:49 2023 +0900
+
+    [URDF] add URDFBodyWriter and python-binding for URDF
+
+commit c7d0e120a05251fb68ef847c3cb94c46e57fe663
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Tue Jan 7 16:38:04 2025 +0900
+
+    [PySceneDrawables.cpp] Fix inertia-matrix of Box
+
+commit cec3c1d0e0d86b9b3509a6018db8c43d752df7e9
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Mon Nov 25 22:32:53 2024 +0900
+
+    [BodyPlugin] add New Feature : Manual sync mode of simulation for executing one step from python
+
+commit 221d62308aa7dca97b07e574619e0ca9c043ff75
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Mon Nov 25 22:24:18 2024 +0900
+
+    [PyBody] add direct access method using numpy.array
+
+commit 998e25416591b0a385e2e11906293ad82af4278a
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Mon Sep 23 11:58:43 2024 +0900
+
+    [Body, Link] add InverseDynamics related methods
+
+commit 6210f310c26c57580073d701f1f21917fd208671
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Wed Jul 10 22:53:54 2024 +0900
+
+    [GLFreeType] fix size of rendering buffer
+
+commit 9f91b8c77ac784d5b5aa1635053b405012ce146c
+Author: YoheiKakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Tue Jun 11 14:20:44 2024 +0900
+
+    [GLSceneRenderer] add setUserProjectionMatrix
+
+commit 5e6bb3a36cc9ca3a1a7d15c79e79a3a36e90d9e2
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Tue Jun 4 09:54:05 2024 +0900
+
+    [StdSceneLoader] add StdSceneLoader to python-bindings
+
+commit f7c3a78f775c4ee4039deea313e79f1943f38a79
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Mon Dec 4 12:22:28 2023 +0900
+
+    [Base/App, pybind11] add processEvents method
+
+commit f9bc765874f86880fe0b5f4e8bcc3aae92da8730
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Tue Oct 31 20:32:10 2023 +0900
+
+    [Util, pybind11] add uri related method, property to SgObject
+
+commit 8a40729bbb9b949863758fd607c16f792f822a58
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Mon Oct 30 21:58:45 2023 +0900
+
+    [Util, pybind11] PySceneLoader add classes, StdSceneLoader and StdSceneWriter
+
+commit 57ea93cb59ae7b56fe9a83cc2370dc2c7d0d9365
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Mon Oct 30 21:57:49 2023 +0900
+
+    [Util, pybind11] PySceneDrawables add setTextureImage method to SgShape
+
+commit b8dd3f99c09e88c9e8548cfa5b7e17d008d63118
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Fri Oct 20 10:37:43 2023 +0900
+
+    [Util, PySceneDrawables.cpp] add updateBoundingBox method to SgPlot
+
+commit 4a9ecfa09e2577d19f7e5e8c0adfc41016c6ca9d
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Thu Oct 19 22:54:00 2023 +0900
+
+    [Util, PyMeshUtils.cpp] add MeshFilter
+
+commit e7d56e32630fda81afc0b5d1f00ee4f985484b1c
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Thu Sep 21 21:28:55 2023 +0900
+
+    [Util/pybind11] add classes (SgPointSet, SgLineSet) to PySceneDrawables
+
+commit a1d4f2f7f0d22604ad3f84b4cec3c35acbeb512e
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Thu Sep 21 21:28:16 2023 +0900
+
+    [Util/pybind11] add classes to handle primitive-type in PySceneDrawables
+
+commit c47fc80a4b57e3490d9db35eb12fd2759f7cb86d
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Thu Sep 21 21:12:55 2023 +0900
+
+    [Util/pybind11] add some classes (SgScaleTransform, SgSwitch, SgSwitchableGroup)
+
+commit b7ee4bfb8aec02f018cedb49db13c00c1e9907e3
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Thu Sep 21 21:12:11 2023 +0900
+
+    [Util/pybind11] add some methods to SgGroup
+
+commit 1f6eb8b1a49fea2c1e47abb74d460a61181bc615
+Author: YoheiKakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Tue Sep 5 23:22:51 2023 +0900
+
+    [Body, pybind11] add StdBodyWriter class
+
+commit ccb3a768c355b7f6e6679cd83f7bfc1309f97d47
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Tue Aug 29 18:23:30 2023 +0900
+
+    [Body, pybind11] add method setMessageSinkStdErr to bodyLoader
+
+commit 2e35daba6fc46ff741e71d94e281e67567b95156
+Author: Yohei Kakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Tue Jul 18 19:39:18 2023 +0900
+
+    [cnoid.Util] add SceneLoader class
+
+commit 90c6ee7c4e9435bbd50f09c63da1016ebb63fae9
+Author: YoheiKakiuchi <kakiuchi.yohei.sw@tut.jp>
+Date:   Tue Jul 18 19:01:27 2023 +0900
+
+    FIX: initialize Isometry3 variable with Isometry3::identity()
+
+
+--- rebase log
+irsl@simserver:~/src/choreonoid (update_stable_20250326)$ git rebase-kakiuchi origin/master
+First, rewinding head to replay your work on top of it...
+Applying: [Assimp] add AssimpSceneWriter and python-binding for Assimp
+Using index info to reconstruct a base tree...
+M       src/AssimpSceneLoader/AssimpSceneLoader.cpp
+.git/rebase-apply/patch:78: new blank line at EOF.
++
+warning: 1 line adds whitespace errors.
+Falling back to patching base and 3-way merge...
+Auto-merging src/AssimpSceneLoader/AssimpSceneLoader.cpp
+CONFLICT (content): Merge conflict in src/AssimpSceneLoader/AssimpSceneLoader.cpp
+error: Failed to merge in the changes.
+Patch failed at 0001 [Assimp] add AssimpSceneWriter and python-binding for Assimp
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 1/46)$ git rebase --skip
+
+Applying: FIX: initialize Isometry3 variable with Isometry3::identity()
+Applying: [cnoid.Util] add SceneLoader class
+Applying: [Assimp] add docstring to python-bindings
+Using index info to reconstruct a base tree...
+A       src/AssimpPlugin/pybind11/PyAssimpPluginModule.cpp
+Falling back to patching base and 3-way merge...
+CONFLICT (modify/delete): src/AssimpPlugin/pybind11/PyAssimpPluginModule.cpp deleted in HEAD and modified in [Assimp] add docstring to python-bindings. Version [Assimp] add docstring to python-bindings of src/AssimpPlugin/pybind11/PyAssimpPluginModule.cpp left in tree.
+error: Failed to merge in the changes.
+Patch failed at 0004 [Assimp] add docstring to python-bindings
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 4/46)$ git rebase --skip
+
+Applying: [Assimp]  FIX: AssimpSceneWriter to use original mesh
+Using index info to reconstruct a base tree...
+A       src/AssimpSceneWriter/AssimpSceneWriter.cpp
+Falling back to patching base and 3-way merge...
+CONFLICT (modify/delete): src/AssimpSceneWriter/AssimpSceneWriter.cpp deleted in HEAD and modified in [Assimp]  FIX: AssimpSceneWriter to use original mesh. Version [Assimp]  FIX: AssimpSceneWriter to use original mesh of src/AssimpSceneWriter/AssimpSceneWriter.cpp left in tree.
+error: Failed to merge in the changes.
+Patch failed at 0005 [Assimp]  FIX: AssimpSceneWriter to use original mesh
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 5/46)$ git rebase --skip
+
+
+Applying: [Body, pybind11] add method setMessageSinkStdErr to bodyLoader
+Applying: [Body, pybind11] add StdBodyWriter class
+Applying: [Util/pybind11] add some methods to SgGroup
+Applying: [Util/pybind11] add some classes (SgScaleTransform, SgSwitch, SgSwitchableGroup)
+Applying: [Util/pybind11] add classes to handle primitive-type in PySceneDrawables
+Applying: [Util/pybind11] add classes (SgPointSet, SgLineSet) to PySceneDrawables
+Applying: [pybind11/SceneDrawables] add SgText and update some methods
+Using index info to reconstruct a base tree...
+M       src/Util/pybind11/PySceneDrawables.cpp
+Falling back to patching base and 3-way merge...
+Auto-merging src/Util/pybind11/PySceneDrawables.cpp
+CONFLICT (content): Merge conflict in src/Util/pybind11/PySceneDrawables.cpp
+error: Failed to merge in the changes.
+Patch failed at 0012 [pybind11/SceneDrawables] add SgText and update some methods
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 12/46)$ git rebase --skip
+
+
+Applying: [Assimp] FIX: AssimpSceneWriter use default material if SgNode does not have material
+Using index info to reconstruct a base tree...
+A       src/AssimpSceneWriter/AssimpSceneWriter.cpp
+Falling back to patching base and 3-way merge...
+CONFLICT (modify/delete): src/AssimpSceneWriter/AssimpSceneWriter.cpp deleted in HEAD and modified in [Assimp] FIX: AssimpSceneWriter use default material if SgNode does not have material. Version [Assimp] FIX: AssimpSceneWriter use default material if SgNode does not have material of src/AssimpSceneWriter/AssimpSceneWriter.cpp left in tree.
+error: Failed to merge in the changes.
+Patch failed at 0013 [Assimp] FIX: AssimpSceneWriter use default material if SgNode does not have material
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 13/46)$ git rebase --skip
+
+
+Applying: [Assimp] FIX: error on windows build
+Using index info to reconstruct a base tree...
+A       src/AssimpSceneWriter/AssimpSceneWriter.cpp
+Falling back to patching base and 3-way merge...
+CONFLICT (modify/delete): src/AssimpSceneWriter/AssimpSceneWriter.cpp deleted in HEAD and modified in [Assimp] FIX: error on windows build. Version [Assimp] FIX: error on windows build of src/AssimpSceneWriter/AssimpSceneWriter.cpp left in tree.
+error: Failed to merge in the changes.
+Patch failed at 0014 [Assimp] FIX: error on windows build
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 14/46)$ git rebase --skip
+
+
+Applying: [Assimp] Add method ignoreURDFPrimitive to AssimpSceneWriter
+Using index info to reconstruct a base tree...
+A       src/AssimpPlugin/pybind11/PyAssimpPluginModule.cpp
+A       src/AssimpSceneWriter/AssimpSceneWriter.cpp
+A       src/AssimpSceneWriter/AssimpSceneWriter.h
+Falling back to patching base and 3-way merge...
+CONFLICT (modify/delete): src/AssimpSceneWriter/AssimpSceneWriter.h deleted in HEAD and modified in [Assimp] Add method ignoreURDFPrimitive to AssimpSceneWriter. Version [Assimp] Add method ignoreURDFPrimitive to AssimpSceneWriter of src/AssimpSceneWriter/AssimpSceneWriter.h left in tree.
+CONFLICT (modify/delete): src/AssimpSceneWriter/AssimpSceneWriter.cpp deleted in HEAD and modified in [Assimp] Add method ignoreURDFPrimitive to AssimpSceneWriter. Version [Assimp] Add method ignoreURDFPrimitive to AssimpSceneWriter of src/AssimpSceneWriter/AssimpSceneWriter.cpp left in tree.
+CONFLICT (modify/delete): src/AssimpPlugin/pybind11/PyAssimpPluginModule.cpp deleted in HEAD and modified in [Assimp] Add method ignoreURDFPrimitive to AssimpSceneWriter. Version [Assimp] Add method ignoreURDFPrimitive to AssimpSceneWriter of src/AssimpPlugin/pybind11/PyAssimpPluginModule.cpp left in tree.
+error: Failed to merge in the changes.
+Patch failed at 0015 [Assimp] Add method ignoreURDFPrimitive to AssimpSceneWriter
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 15/46)$ git rebase --skip
+
+
+Applying: [Util, PySceneDrawables.cpp] refactor Mesh,Plot methods
+Using index info to reconstruct a base tree...
+M       src/Util/pybind11/PySceneDrawables.cpp
+.git/rebase-apply/patch:19: trailing whitespace.
+//
+warning: 1 line adds whitespace errors.
+Falling back to patching base and 3-way merge...
+Auto-merging src/Util/pybind11/PySceneDrawables.cpp
+CONFLICT (content): Merge conflict in src/Util/pybind11/PySceneDrawables.cpp
+error: Failed to merge in the changes.
+Patch failed at 0016 [Util, PySceneDrawables.cpp] refactor Mesh,Plot methods
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 16/46)$ git rebase --skip
+
+
+Applying: [Util, PyMeshUtils.cpp] add MeshFilter
+Applying: [Util, PySceneDrawables.cpp] add updateBoundingBox method to SgPlot
+Using index info to reconstruct a base tree...
+M       src/Util/pybind11/PySceneDrawables.cpp
+Falling back to patching base and 3-way merge...
+Auto-merging src/Util/pybind11/PySceneDrawables.cpp
+Applying: [Util, pybind11] PySceneDrawables add setTextureImage method to SgShape
+Applying: [Util, pybind11] PySceneLoader add classes, StdSceneLoader and StdSceneWriter
+Applying: [Util, pybind11] add uri related method, property to SgObject
+Applying: [Util, PySceneDrawables.cpp] add mesh moving methods and setMeshType method
+Using index info to reconstruct a base tree...
+M       src/Util/pybind11/PySceneDrawables.cpp
+Falling back to patching base and 3-way merge...
+Auto-merging src/Util/pybind11/PySceneDrawables.cpp
+CONFLICT (content): Merge conflict in src/Util/pybind11/PySceneDrawables.cpp
+error: Failed to merge in the changes.
+Patch failed at 0022 [Util, PySceneDrawables.cpp] add mesh moving methods and setMeshType method
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+
+
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 22/46)$ git rebase --skip
+Applying: [Base/App, pybind11] add processEvents method
+Applying: [AssimpPlugin] update assimp related code
+Using index info to reconstruct a base tree...
+A       src/AssimpPlugin/pybind11/PyAssimpPluginModule.cpp
+M       src/AssimpSceneLoader/AssimpSceneLoader.cpp
+M       src/AssimpSceneLoader/AssimpSceneLoader.h
+A       src/AssimpSceneWriter/AssimpSceneWriter.cpp
+A       src/AssimpSceneWriter/AssimpSceneWriter.h
+Falling back to patching base and 3-way merge...
+CONFLICT (modify/delete): src/AssimpSceneWriter/AssimpSceneWriter.h deleted in HEAD and modified in [AssimpPlugin] update assimp related code. Version [AssimpPlugin] update assimp related code of src/AssimpSceneWriter/AssimpSceneWriter.h left in tree.
+CONFLICT (modify/delete): src/AssimpSceneWriter/AssimpSceneWriter.cpp deleted in HEAD and modified in [AssimpPlugin] update assimp related code. Version [AssimpPlugin] update assimp related code of src/AssimpSceneWriter/AssimpSceneWriter.cpp left in tree.
+Auto-merging src/AssimpSceneLoader/AssimpSceneLoader.h
+CONFLICT (content): Merge conflict in src/AssimpSceneLoader/AssimpSceneLoader.h
+Auto-merging src/AssimpSceneLoader/AssimpSceneLoader.cpp
+CONFLICT (content): Merge conflict in src/AssimpSceneLoader/AssimpSceneLoader.cpp
+CONFLICT (modify/delete): src/AssimpPlugin/pybind11/PyAssimpPluginModule.cpp deleted in HEAD and modified in [AssimpPlugin] update assimp related code. Version [AssimpPlugin] update assimp related code of src/AssimpPlugin/pybind11/PyAssimpPluginModule.cpp left in tree.
+error: Failed to merge in the changes.
+Patch failed at 0024 [AssimpPlugin] update assimp related code
+hint: Use 'git am --show-current-patch' to see the failed patch
+Resolve all conflicts manually, mark them as resolved with
+"git add/rm <conflicted_files>", then run "git rebase --continue".
+You can instead skip this commit: run "git rebase --skip".
+To abort and get back to the state before "git rebase", run "git rebase --abort".
+
+
+1 irsl@simserver:~/src/choreonoid (update_stable_20250326|REBASE 24/46)$ git rebase --skip
+Applying: [StdSceneLoader] add StdSceneLoader to python-bindings
+Applying: [GLSceneRenderer] add setUserProjectionMatrix
+Applying: [GLFreeType] fix size of rendering buffer
+Applying: [Body, Link] add InverseDynamics related methods
+Applying: [PyBody] add direct access method using numpy.array
+Applying: [BodyPlugin] add New Feature : Manual sync mode of simulation for executing one step from python
+Applying: [PySceneDrawables.cpp] Fix inertia-matrix of Box
+Applying: [URDF] add URDFBodyWriter and python-binding for URDF
+Using index info to reconstruct a base tree...
+M       src/CMakeLists.txt
+Falling back to patching base and 3-way merge...
+Auto-merging src/CMakeLists.txt
+Applying: [URDF] ADD method setUseURDFPrimitiveGeometry to URDFBodyWriter
+Applying: [URDF] install choreonoid_body2urdf
+Applying: [URDF] add option, --no-primitive to body2urdf
+Applying: [URDF] fix minor
+Applying: [WIP] fix loading URDF
+Applying: [PySceneGraph] Catching up changes of definitions
+Applying: [body2urdf] change option parser to CLI11
+Applying: [GLVisionSimulator, pybind11] fix module name
+Applying: [body2urdf] fix default behavior
+Applying: [BodyPlugin, pybind11] add  methods related to transparency to BodyItem
+Applying: [StdBodyWriter, pybind11] add not implemented methods
+Applying: [Body, pybind11] add devices, Force, Acceleration, RateGyro, Imu
+Applying: [Util, PySceneGraph] add clone method to SgGroup and SgPosTransform
+Applying: [Body/pybind11] add device types and constructor
