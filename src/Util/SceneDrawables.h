@@ -90,6 +90,15 @@ private:
     std::shared_ptr<Image> image_;
 };
 
+class CNOID_EXPORT SgImageResource : public SgImage
+{
+public:
+    SgImageResource() : SgImage() {};
+    SgImageResource(const Image& image) : SgImage(image) {};
+    SgImageResource(std::shared_ptr<Image> sharedImage) : SgImage(sharedImage) {};
+    SgImageResource(const SgImage& org) : SgImage(org) {};
+    std::string resource;
+};
 
 class CNOID_EXPORT SgTextureTransform : public SgObject
 {

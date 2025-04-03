@@ -1217,6 +1217,9 @@ MappingPtr StdSceneWriter::Impl::writeTexture(SgTexture* texture)
     bool isValid = false;
 
     if(auto image = texture->image()){
+        //SgImageResource *r = dynamic_cast<SgImageResource *>(image);
+        //if(!!r) {
+        //} else
         if(image->hasUri()){
             filesystem::path imageDirPath = outputBaseDirPath;
             filesystem::path mainSceneNamePath;

@@ -1398,6 +1398,7 @@ void StdSceneReader::Impl::readTexture(SgShape* shape, Mapping* info)
         string& uri = symbol;
         if(info->read({ "uri", "url" }, uri) && !uri.empty()){
             SgImagePtr image;
+            if (false) {
             auto it = imagePathToSgImageMap.find(uri);
             if(it != imagePathToSgImageMap.end()){
                 image = it->second;
@@ -1416,6 +1417,16 @@ void StdSceneReader::Impl::readTexture(SgShape* shape, Mapping* info)
                         image.reset();
                     }
                 }
+            }}
+            string binary;
+            if ( info->read("binary", binary) ) {
+                //// loading
+                // width, height, components
+            }
+            {// not reading image
+                SgImageResource *im = new SgImageResource();
+                im->resource = uri;
+                image = im;
             }
             if(image){
                 texture = new SgTexture;
