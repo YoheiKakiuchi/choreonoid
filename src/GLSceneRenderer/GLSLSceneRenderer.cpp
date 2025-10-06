@@ -22,6 +22,7 @@
 #include <stdexcept>
 #include <iostream>
 #include "gettext.h"
+#include <QOpenGLExtraFunctions>
 
 using namespace std;
 using namespace cnoid;
@@ -292,6 +293,7 @@ public:
 namespace cnoid {
 
 class GLSLSceneRenderer::Impl
+    : public QOpenGLExtraFunctions   // Added inheritance
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -465,6 +467,8 @@ public:
     string glRendererString;
     string glslVersionString;
 
+    bool glFunctionsInitialized; // Added: tracks QOpenGLExtraFunctions initialization
+
     Impl(GLSLSceneRenderer* self);
     ~Impl();
     void initialize();
@@ -569,7 +573,6 @@ public:
 
 }
 
-
 GLSLSceneRenderer::GLSLSceneRenderer(SgGroup* sceneRoot)
     : GLSceneRenderer(sceneRoot)
 {
@@ -581,7 +584,7 @@ GLSLSceneRenderer::GLSLSceneRenderer(SgGroup* sceneRoot)
 GLSLSceneRenderer::Impl::Impl(GLSLSceneRenderer* self)
     : self(self)
 {
-
+    glFunctionsInitialized = false; // initialize flag
 }
 
 
@@ -706,7 +709,9 @@ void GLSLSceneRenderer::Impl::initialize()
     isShadowCastingAvailable = true;
     isWorldLightShadowEnabled = false;
     isRenderingShadowMap = false;
+    isLightweightRenderingBeingProcessed = false;
     isLowMemoryConsumptionMode = false;
+    isLowMemoryConsumptionRenderingBeingProcessed = false;
     isBoundingBoxRenderingMode = false;
     isBoundingBoxRenderingForLightweightRenderingGroupEnabled = false;
 
@@ -942,17 +947,20 @@ bool GLSLSceneRenderer::initializeGL()
 
 bool GLSLSceneRenderer::Impl::initializeGL()
 {
-    if(ogl_LoadFunctions() == ogl_LOAD_FAILED){
-        return false;
+    // Removed custom loader (ogl_LoadFunctions) and replaced with Qt functions init
+    if(!glFunctionsInitialized){
+        initializeOpenGLFunctions();
+        glFunctionsInitialized = true;
     }
 
+    // Query version info via the (now initialized) Qt function table
     GLint major, minor;
     glGetIntegerv(GL_MAJOR_VERSION, &major);
     glGetIntegerv(GL_MINOR_VERSION, &minor);
-    glVersionString = (const char*)glGetString(GL_VERSION);
-    glVendorString = (const char*)glGetString(GL_VENDOR);
-    glRendererString = (const char*)glGetString(GL_RENDERER);
-    glslVersionString = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+    glVersionString  = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+    glVendorString   = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+    glRendererString = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+    glslVersionString= reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
 
     os() << formatR(_("OpenGL {0}.{1} (GLSL {2}) is available for the \"{3}\" view.\n"),
                     major, minor, glslVersionString, self->name());
@@ -975,6 +983,55 @@ bool GLSLSceneRenderer::Impl::initializeGL()
     os().flush();
 
     return initializeGLForRendering();
+}
+
+
+bool GLSLSceneRenderer::Impl::initializeGLForRendering()
+{
+    if(!glFunctionsInitialized){
+        // Safeguard (in case initializeGL was bypassed)
+        initializeOpenGLFunctions();
+        glFunctionsInitialized = true;
+    }
+
+    isGLCleared = false;
+    try {
+        nolightingProgram->initialize();
+        solidColorProgram->initialize();
+        solidColorExProgram->initialize();
+        solidPointProgram->initialize();
+        thickLineProgram->initialize();
+        textProgram->setTextureUnit(ImageTextureUnit);
+        textProgram->initialize();
+        outlineProgram->initialize();
+        minimumLightingProgram->initialize();
+        fullLightingProgram->setColorTextureUnit(ImageTextureUnit);
+        fullLightingProgram->setShadowMapTextureTopIndex(ShadowMapTextureUnit);
+        fullLightingProgram->initialize();
+    }
+    catch(std::runtime_error& error){
+        os() << error.what() << std::endl;
+        std::cerr << error.what() << std::endl;
+        return false;
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDisable(GL_DITHER);
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+#ifdef CNOID_ENABLE_FREE_TYPE
+# ifdef _WIN32
+    freeType.initializeGL("C:\\Windows\\Fonts\\arial.ttf", 100, ImageTextureUnit);
+# else
+    freeType.initializeGL("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 100, ImageTextureUnit);
+# endif
+#endif
+
+    isResourceClearRequested = true;
+    isCurrentFogUpdated = false;
+
+    return true;
 }
 
 
@@ -1023,76 +1080,19 @@ void GLSLSceneRenderer::Impl::checkGPU()
 }
 
 
-bool GLSLSceneRenderer::Impl::initializeGLForRendering()
-{
-    isGLCleared = false;
-
-    try {
-        nolightingProgram->initialize();
-        solidColorProgram->initialize();
-        solidColorExProgram->initialize();
-        solidPointProgram->initialize();
-        thickLineProgram->initialize();
-        textProgram->setTextureUnit(ImageTextureUnit);
-        textProgram->initialize();
-        outlineProgram->initialize();
-        minimumLightingProgram->initialize();
-        fullLightingProgram->setColorTextureUnit(ImageTextureUnit);
-        fullLightingProgram->setShadowMapTextureTopIndex(ShadowMapTextureUnit);
-        fullLightingProgram->initialize();
-    }
-    catch(std::runtime_error& error){
-        os() << error.what() << endl;
-        cerr << error.what() << endl;
-        return false;
-    }
-
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glDisable(GL_DITHER);
-    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-
-#ifdef CNOID_ENABLE_FREE_TYPE
-# ifdef _WIN32
-    freeType.initializeGL("C:\\Windows\\Fonts\\arial.ttf", 100, ImageTextureUnit);
-# else
-    freeType.initializeGL("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 100, ImageTextureUnit);
-# endif
-#endif
-
-    isResourceClearRequested = true;
-    isCurrentFogUpdated = false;
-
-    return true;
-}
-
-
-const std::string& GLSLSceneRenderer::glVendor() const
-{
-    return impl->glVendorString;
-}
-
-
-void GLSLSceneRenderer::setDefaultFramebufferObject(unsigned int id)
-{
-    impl->defaultFBO = id;
-    impl->fullLightingProgram->setDefaultFramebufferObject(id);
-}
-
-
 void GLSLSceneRenderer::Impl::initializeDepthTexture()
 {
     if(!depthTexture){
         glGenTextures(1, &depthTexture);
         glActiveTexture(GL_TEXTURE0 + DepthTextureUnit);
-        glBindTexture(GL_TEXTURE_2D, depthTexture);
+        this->glBindTexture(GL_TEXTURE_2D, depthTexture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     } else {
         glActiveTexture(GL_TEXTURE0 + DepthTextureUnit);
-        glBindTexture(GL_TEXTURE_2D, depthTexture);
+        this->glBindTexture(GL_TEXTURE_2D, depthTexture);
     }
 
     auto& vp = self->viewport();
@@ -2977,8 +2977,8 @@ void GLSLSceneRenderer::Impl::renderPlot
             glBufferData(GL_ARRAY_BUFFER, n * sizeof(Color), colors.data(), GL_STATIC_DRAW);
             glEnableVertexAttribArray(3);
         }
-    }        
-    
+    }
+
     auto pickIndex = pushPickEndNode(plot);
 
     bool isTransparent = false;
@@ -3011,7 +3011,7 @@ void GLSLSceneRenderer::Impl::renderPlotMain
  const std::function<bool()>& setupShaderProgram)
 {
     bool pushed = setupShaderProgram();
-    
+
     if(isRenderingPickingImage){
         setPickColor(pickIndex);
     } else {
