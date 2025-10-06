@@ -1110,28 +1110,22 @@ void GLSLSceneRenderer::Impl::initializeDepthTexture()
 
 void GLSLSceneRenderer::setViewport(int x, int y, int width, int height)
 {
-    glViewport(x, y, width, height);
+    impl->glViewport(x, y, width, height); // changed
     updateViewportInformation(x, y, width, height);
 }
 
 
 void GLSLSceneRenderer::flushGL()
 {
-    glFlush();
-
-    /**
-       This is necessary when the rendering is done for an internal frame buffer object
-       and the rendererd image data is retrieved from it because another frame buffer object
-       may be bounded in the renderer.
-    */
-    glBindFramebuffer(GL_FRAMEBUFFER, impl->defaultFBO);
+    impl->glFlush(); // changed
+    impl->glBindFramebuffer(GL_FRAMEBUFFER, impl->defaultFBO); // changed
 }
 
 
 void GLSLSceneRenderer::updateViewportInformation()
 {
     int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    impl->glGetIntegerv(GL_VIEWPORT, viewport); // changed
     updateViewportInformation(viewport[0], viewport[1], viewport[2], viewport[3]);
 }
 
@@ -1520,16 +1514,16 @@ bool GLSLSceneRenderer::getPickingImage(Image& out_image)
         return false;
     }
     
-    glBindFramebuffer(GL_FRAMEBUFFER, impl->fboForPicking);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, impl->fboForPicking);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    impl->glBindFramebuffer(GL_FRAMEBUFFER, impl->fboForPicking);          // changed
+    impl->glBindFramebuffer(GL_READ_FRAMEBUFFER, impl->fboForPicking);     // changed
+    impl->glReadBuffer(GL_COLOR_ATTACHMENT0);                              // changed
     int w = impl->pickingImageWidth;
     int h = impl->pickingImageHeight;
     out_image.setSize(w, h, 4);
-    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, out_image.pixels());
+    impl->glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, out_image.pixels()); // changed
     out_image.applyVerticalFlip();
-    glBindFramebuffer(GL_FRAMEBUFFER, impl->defaultFBO);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, impl->defaultFBO);
+    impl->glBindFramebuffer(GL_FRAMEBUFFER, impl->defaultFBO);             // changed
+    impl->glBindFramebuffer(GL_READ_FRAMEBUFFER, impl->defaultFBO);        // changed
 
     return true;
 }
