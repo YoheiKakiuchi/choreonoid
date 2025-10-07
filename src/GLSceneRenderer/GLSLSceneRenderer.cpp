@@ -992,6 +992,51 @@ bool GLSLSceneRenderer::Impl::initializeGL()
 }
 
 
+void GLSLSceneRenderer::Impl::checkGPU()
+{
+    std::smatch match;
+
+    // Check the Intel GPU
+    if(regex_match(glRendererString, match, regex("Mesa DRI Intel\\(R\\) (\\S+).*$"))){
+        if(match.str(1) == "Sandybridge"){
+            isShadowCastingAvailable = false;
+        }
+        /* The problem on the following driver seems to have been resolved
+        else if(regex_match(glVersionString, match, regex(".*Mesa (\\d+)\\.(\\d+)\\.(\\d+).*$"))){
+            int mesaMajor = stoi(match.str(1));
+            if(mesaMajor >= 19){
+                isShadowCastingAvailable = false;
+            }
+        }
+        */
+    }
+    // CHeck if the VMWare's virtual driver is used
+    else if(regex_match(glVendorString, regex("VMware, Inc\\..*"))){
+        isShadowCastingAvailable = false;
+        if(regex_match(glVersionString, match, regex(".*Mesa (\\d+)\\.(\\d+)\\.(\\d+).*$"))){
+            int mesaMajor = stoi(match.str(1));
+            if(mesaMajor >= 20){
+                isShadowCastingAvailable = true;
+            }
+        }
+    }
+    // Check if the GPU driver is Nouveau
+    else if(regex_match(glVendorString, regex(".*nouveau.*"))){
+        isShadowCastingAvailable = false;
+        if(regex_match(glVersionString, match, regex(".*Mesa (\\d+)\\.(\\d+)\\.(\\d+).*$"))){
+            int mesaMajor = stoi(match.str(1));
+            if(mesaMajor >= 20){
+                isShadowCastingAvailable = true;
+            }
+        }
+    }
+
+    if(!isShadowCastingAvailable){
+        os() << formatR(_("Shadow casting is disabled for this GPU due to some problems.\n"));
+    }
+}
+
+
 bool GLSLSceneRenderer::Impl::initializeGLForRendering()
 {
     if(!glFunctionsInitialized){
@@ -1041,48 +1086,16 @@ bool GLSLSceneRenderer::Impl::initializeGLForRendering()
 }
 
 
-void GLSLSceneRenderer::Impl::checkGPU()
+const std::string& GLSLSceneRenderer::glVendor() const
 {
-    std::smatch match;
+    return impl->glVendorString;
+}
 
-    // Check the Intel GPU
-    if(regex_match(glRendererString, match, regex("Mesa DRI Intel\\(R\\) (\\S+).*$"))){
-        if(match.str(1) == "Sandybridge"){
-            isShadowCastingAvailable = false;
-        }
-        /* The problem on the following driver seems to have been resolved
-        else if(regex_match(glVersionString, match, regex(".*Mesa (\\d+)\\.(\\d+)\\.(\\d+).*$"))){
-            int mesaMajor = stoi(match.str(1));
-            if(mesaMajor >= 19){
-                isShadowCastingAvailable = false;
-            }
-        }
-        */
-    }
-    // CHeck if the VMWare's virtual driver is used
-    else if(regex_match(glVendorString, regex("VMware, Inc\\..*"))){
-        isShadowCastingAvailable = false;
-        if(regex_match(glVersionString, match, regex(".*Mesa (\\d+)\\.(\\d+)\\.(\\d+).*$"))){
-            int mesaMajor = stoi(match.str(1));
-            if(mesaMajor >= 20){
-                isShadowCastingAvailable = true;
-            }
-        }
-    }
-    // Check if the GPU driver is Nouveau
-    else if(regex_match(glVendorString, regex(".*nouveau.*"))){
-        isShadowCastingAvailable = false;
-        if(regex_match(glVersionString, match, regex(".*Mesa (\\d+)\\.(\\d+)\\.(\\d+).*$"))){
-            int mesaMajor = stoi(match.str(1));
-            if(mesaMajor >= 20){
-                isShadowCastingAvailable = true;
-            }
-        }
-    }
 
-    if(!isShadowCastingAvailable){
-        os() << formatR(_("Shadow casting is disabled for this GPU due to some problems.\n"));
-    }
+void GLSLSceneRenderer::setDefaultFramebufferObject(unsigned int id)
+{
+    impl->defaultFBO = id;
+    impl->fullLightingProgram->setDefaultFramebufferObject(id);
 }
 
 
