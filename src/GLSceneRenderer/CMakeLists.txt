@@ -25,7 +25,11 @@ choreonoid_qt_add_resources(RC_SRCS GLSceneRenderer.qrc)
 
 make_gettext_mofiles(${target} mofiles)
 
-set(libraries PUBLIC CnoidUtil PRIVATE ${CHOREONOID_QT_CORE_LIBRARY})
+message("CNOID_QT : ${CHOREONOID_QT_CORE_LIBRARY}")
+
+find_package(Qt6 REQUIRED COMPONENTS Gui)
+
+set(libraries PUBLIC CnoidUtil PRIVATE ${CHOREONOID_QT_CORE_LIBRARY} Qt6::Gui)
 
 if(MSVC)
   set(libraries ${libraries} PUBLIC general glu32 opengl32)
