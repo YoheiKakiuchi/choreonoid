@@ -4,7 +4,7 @@ set(sources
   GLSLProgram.cpp
   ShaderPrograms.cpp
   GLSLSceneRenderer.cpp
-  gl_core_3_3.c
+  #gl_core_3_3.c
   #gl_core_4_0.c
   #gl_core_4_4.c
   gl_1_5.c

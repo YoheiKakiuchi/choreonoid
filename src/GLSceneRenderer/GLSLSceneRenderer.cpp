@@ -904,15 +904,15 @@ void GLSLSceneRenderer::Impl::clearGL(bool isGLContextActive, bool isCalledFromC
         currentLightingProgram = nullptr;
         currentMaterialLightingProgram = nullptr;
 
-        nolightingProgram.reset(new NolightingProgram);
-        solidColorProgram.reset(new SolidColorProgram);
-        solidColorExProgram.reset(new SolidColorExProgram);
-        solidPointProgram.reset(new SolidPointProgram);
-        thickLineProgram.reset(new ThickLineProgram);
-        textProgram.reset(new TextProgram);
-        outlineProgram.reset(new OutlineProgram);
-        minimumLightingProgram.reset(new MinimumLightingProgram);
-        fullLightingProgram.reset(new FullLightingProgram);
+        nolightingProgram.reset(new NolightingProgram(this));
+        solidColorProgram.reset(new SolidColorProgram(this));
+        solidColorExProgram.reset(new SolidColorExProgram(this));
+        solidPointProgram.reset(new SolidPointProgram(this));
+        thickLineProgram.reset(new ThickLineProgram(this));
+        textProgram.reset(new TextProgram(this));
+        outlineProgram.reset(new OutlineProgram(this));
+        minimumLightingProgram.reset(new MinimumLightingProgram(this));
+        fullLightingProgram.reset(new FullLightingProgram(this));
 
         needToUpdateDepthTexture = true;
     
@@ -1319,7 +1319,7 @@ void GLSLSceneRenderer::Impl::doRender()
             renderFog(currentLightingProgram);
         }
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // TODO FIX
 
         renderChildNodes(self->sceneRoot());
         
@@ -1334,7 +1334,7 @@ void GLSLSceneRenderer::Impl::doRender()
             doVertexRendering();
         }
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // TODO FIX
         if(!transparentRenderingQueue.empty()){
             renderTransparentObjects();
         }
@@ -1463,7 +1463,7 @@ bool GLSLSceneRenderer::Impl::doPick(int x, int y)
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);  // TODO FIX
 
     if(auto camera = self->currentCamera()){
 
@@ -1788,7 +1788,7 @@ void GLSLSceneRenderer::Impl::renderFog(LightingProgram* program)
 
 void GLSLSceneRenderer::Impl::doPureWireframeRendering()
 {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // TODO FIX
     
     for(auto& info : pureWireframeRenderingNodes){
         auto style = static_cast<SgPolygonDrawStyle*>(info.node.get());
