@@ -66,6 +66,9 @@ struct LockVertexArrayAPI
 class GLResource : public Referenced
 {
 public:
+    // Added: pointer to renderer Func (inherits QOpenGLExtraFunctions)
+    QOpenGLExtraFunctions* func;
+    GLResource(QOpenGLExtraFunctions* func) : func(func) {}
     virtual void discard() = 0;
 };
 
@@ -100,10 +103,11 @@ public:
     VertexResource(const VertexResource&) = delete;
     VertexResource& operator=(const VertexResource&) = delete;
 
-    VertexResource(SgObject* obj)
+    VertexResource(QOpenGLExtraFunctions* func, SgObject* obj)
+        : GLResource(func)
     {
         clearHandles();
-        glGenVertexArrays(1, &vao);
+        func->glGenVertexArrays(1, &vao);
         pLocalTransform = nullptr;
 
         connection =
@@ -133,14 +137,14 @@ public:
 
     GLuint newBuffer(){
         GLuint buffer;
-        glGenBuffers(1, &buffer);
+        func->glGenBuffers(1, &buffer);
         vbos[numBuffers++] = buffer;
         return buffer;
     }
 
     void deleteBuffers(){
         if(numBuffers > 0){
-            glDeleteBuffers(numBuffers, vbos);
+            func->glDeleteBuffers(numBuffers, vbos);
             for(int i=0; i < numBuffers; ++i){
                 vbos[i] = 0;
             }
@@ -155,7 +159,7 @@ public:
     ~VertexResource() {
         deleteBuffers();
         if(vao){
-            glDeleteVertexArrays(1, &vao);
+            func->glDeleteVertexArrays(1, &vao);
         }
     }
 };
@@ -174,7 +178,8 @@ public:
     int numComponents;
     ScopedConnection connection;
         
-    TextureResource(SgImage* image)
+    TextureResource(QOpenGLExtraFunctions* func, SgImage* image)
+        : GLResource(func)
     {
         isLoaded = false;
         isImageUpdateNeeded = false;
@@ -198,11 +203,11 @@ public:
     void clear() {
         if(isLoaded){
             if(textureId){
-                glDeleteTextures(1, &textureId);
+                func->glDeleteTextures(1, &textureId);
                 textureId = 0;
             }
             if(samplerId){
-                glDeleteSamplers(1, &samplerId);
+                func->glDeleteSamplers(1, &samplerId);
                 samplerId = 0;
             }
             isLoaded = false;
@@ -228,10 +233,11 @@ public:
     TextResource(const TextResource&) = delete;
     TextResource& operator=(const TextResource&) = delete;
 
-    TextResource(SgText* text)
+    TextResource(QOpenGLExtraFunctions* func, SgText* text)
+        : GLResource(func)
     {
         clearHandles();
-        glGenVertexArrays(1, &vao);
+        func->glGenVertexArrays(1, &vao);
         connection =
             text->sigUpdated().connect(
                 [this](const SgUpdate&){ isTextUpdateNeeded = true; });
@@ -246,10 +252,10 @@ public:
 
     ~TextResource(){
         if(vbo){
-            glDeleteBuffers(1, &vbo);
+            func->glDeleteBuffers(1, &vbo);
         }
         if(vao){
-            glDeleteVertexArrays(1, &vao);
+            func->glDeleteVertexArrays(1, &vao);
         }
     }
 
@@ -2154,7 +2160,7 @@ ResourceType* GLSLSceneRenderer::Impl::getOrCreateGLResource(ObjectType* obj)
     ResourceType* resource;
     auto p = currentResourceMap->find(obj);
     if(p == currentResourceMap->end()){
-        resource = new ResourceType(obj);
+        resource = new ResourceType(this, obj); // pass Impl*
         p = currentResourceMap->insert(GLResourceMap::value_type(obj, resource)).first;
     } else {
         resource = static_cast<ResourceType*>(p->second.get());
@@ -3379,7 +3385,7 @@ void GLSLSceneRenderer::Impl::renderLightweightRenderingGroup(SgLightweightRende
 namespace {
 
 ResourceRefreshGroupResource::ResourceRefreshGroupResource(GLSLSceneRenderer::Impl* impl, SgGroup* group)
-    : impl(impl)
+    : GLResource(impl), impl(impl)
 {
     subTreePreservationGroup = new SgGroup;
     group->copyChildrenTo(subTreePreservationGroup);
