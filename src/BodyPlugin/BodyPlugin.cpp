@@ -57,7 +57,9 @@
 #include "HrpsysFileIO.h"
 #include "CollisionSeqEngine.h"
 #include "CollisionSeqItem.h"
+#if !defined(EMSCRIPTEN)
 #include <cnoid/BodyCustomizerInterface>
+#endif
 #include <cnoid/ExecutablePath>
 #include <cnoid/UTF8>
 #include <cnoid/ItemManager>
@@ -92,10 +94,10 @@ BodyPlugin::BodyPlugin()
 bool BodyPlugin::initialize()
 {
     setUTF8ToModuleTextDomain("Body");
-    
+#if !defined(EMSCRIPTEN)
     auto customizerPath = pluginDirPath() / "customizer";
     Body::addCustomizerDirectory(toUTF8(customizerPath.string()));
-    
+#endif
     BodySelectionManager::initializeClass(this);
     
     WorldItem::initializeClass(this);
@@ -162,9 +164,9 @@ bool BodyPlugin::initialize()
     KinematicFaultChecker::initializeClass(this);
     initializeSplineFilterDialog(this);
     initializeHrpsysFileIO(this);
-    
+#if !defined(EMSCRIPTEN)
     loadDefaultBodyCustomizers(mvout(false));
-    
+#endif
     return true;
 }
 

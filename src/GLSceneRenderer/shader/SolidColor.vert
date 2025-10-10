@@ -1,18 +1,18 @@
-#version 330
+#version 300 es
+
+precision highp float; // for gles
 
 layout (location = 0) in vec3 vertexPosition;
 layout (location = 3) in vec3 vertexColor;
 
-out VertexData {
-    vec3 color;
-} outData;
+out vec3 v_color; // to fragment shader
 
 uniform mat4 MVP;
-uniform float pointSize = 1.0;
+uniform float pointSize;
 
 void main()
 {
     gl_Position = MVP * vec4(vertexPosition, 1.0);
     gl_PointSize = pointSize;
-    outData.color = vertexColor;
+    v_color = vertexColor; // set value to fragment shader
 }

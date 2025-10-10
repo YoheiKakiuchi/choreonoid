@@ -7,9 +7,17 @@
 using namespace std;
 using namespace cnoid;
 
-
+#if 0
 GLSLProgram::GLSLProgram()
 {
+    programHandle = 0;
+    isLinked_ = false;
+}
+#endif
+
+GLSLProgram::GLSLProgram(QOpenGLExtraFunctions* f)
+{
+    funcs = f;
     programHandle = 0;
     isLinked_ = false;
 }
@@ -20,18 +28,18 @@ void GLSLProgram::release()
     if(programHandle){
 
         GLint numShaders = 0;
-        glGetProgramiv(programHandle, GL_ATTACHED_SHADERS, &numShaders);
+        funcs->glGetProgramiv(programHandle, GL_ATTACHED_SHADERS, &numShaders);
 
         if(numShaders > 0){
             vector<GLuint> shaderNames(numShaders);
-            glGetAttachedShaders(programHandle, numShaders, NULL, &shaderNames.front());
+            funcs->glGetAttachedShaders(programHandle, numShaders, NULL, &shaderNames.front());
 
             for(GLint i = 0; i < numShaders; i++){
-                glDeleteShader(shaderNames[i]);
+                funcs->glDeleteShader(shaderNames[i]);
             }
         }
         
-        glDeleteProgram(programHandle);
+        funcs->glDeleteProgram(programHandle);
         programHandle = 0;
         isLinked_ = false;
     }
@@ -40,9 +48,11 @@ void GLSLProgram::release()
 
 void GLSLProgram::loadShader(const char* filename, int shaderType)
 {
+    qDebug() << "f : " << filename;
     QFile file(filename);
 
     if(!file.exists()){
+        qDebug() << "not found f: " << filename;
         throw std::runtime_error(formatR(_("Shader \"{}\" is not found."), filename));
     }
     
@@ -50,37 +60,41 @@ void GLSLProgram::loadShader(const char* filename, int shaderType)
     const QByteArray data = file.readAll();
     const GLchar* codes[] = { data.data() };
     const GLint codeSizes[] = { static_cast<int>(data.size()) };
+    qDebug() << "c0 : " << codeSizes[0];
+    GLuint shaderHandle = funcs->glCreateShader(shaderType);
+    qDebug() << "c1 : " << shaderHandle;
+    funcs->glShaderSource(shaderHandle, 1, codes, codeSizes);
+    qDebug() << "c2";
+    funcs->glCompileShader(shaderHandle);
 
-    GLuint shaderHandle = glCreateShader(shaderType);
-    
-    glShaderSource(shaderHandle, 1, codes, codeSizes);
-    glCompileShader(shaderHandle);
-
+    qDebug() << "c3";
     GLint result;
-    glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &result);
+    funcs->glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &result);
     if(result == GL_FALSE){
+        qDebug() << "c4";
         string msg;
         GLint length;
-        glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &length);
+        funcs->glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &length);
         if(length > 0){
             vector<char> log(length);
             GLsizei written;
-            glGetShaderInfoLog(shaderHandle, length, &written, &log[0]);
+            funcs->glGetShaderInfoLog(shaderHandle, length, &written, &log[0]);
             msg = formatR(_("Shader compilation of \"{0}\" failed.\n{1}"), filename, &log[0]);
         } else {
             msg = formatR(_("Shader compilation of \"{}\" failed."), filename);
         }
-        glDeleteShader(shaderHandle);
+        qDebug() << msg;
+        funcs->glDeleteShader(shaderHandle);
         throw std::runtime_error(msg);
 
     } else {
         if(!programHandle){
-            programHandle = glCreateProgram();
+            programHandle = funcs->glCreateProgram();
             if(!programHandle){
                 throw std::runtime_error(_("Unable to create shader program."));
             }
         }
-        glAttachShader(programHandle, shaderHandle);
+        funcs->glAttachShader(programHandle, shaderHandle);
     }
 }
 
@@ -92,29 +106,29 @@ void GLSLProgram::link()
     }
     
     if(!programHandle){
+        qDebug() << "Program has not been compiled.";
         throw std::runtime_error(_("Program has not been compiled."));
     }
 
-    glLinkProgram(programHandle);
+    funcs->glLinkProgram(programHandle);
 
     GLint status;
-    glGetProgramiv(programHandle, GL_LINK_STATUS, &status);
+    funcs->glGetProgramiv(programHandle, GL_LINK_STATUS, &status);
     if(status == GL_FALSE){
         string msg;
         GLint length;
-        glGetProgramiv(programHandle, GL_INFO_LOG_LENGTH, &length);
+        funcs->glGetProgramiv(programHandle, GL_INFO_LOG_LENGTH, &length);
         if(length > 0){
             vector<char> log(length);
             GLsizei written;
-            glGetProgramInfoLog(programHandle, length, &written, &log[0]);
+            funcs->glGetProgramInfoLog(programHandle, length, &written, &log[0]);
             msg = formatC("Program link failed:\n{}", &log[0]);
         } else {
             msg = _("Program link failed.");
         }
+        qDebug() << msg;
         throw std::runtime_error(msg);
     }
-
-    // uniformLocations.clear();
 
     isLinked_ = true;
 }
@@ -126,17 +140,18 @@ void GLSLProgram::validate()
         throw std::runtime_error(_("Program is not linked"));
     }
 
+    funcs->glValidateProgram(programHandle);
+
     GLint status;
-    glValidateProgram(programHandle);
-    glGetProgramiv(programHandle, GL_VALIDATE_STATUS, &status);
+    funcs->glGetProgramiv(programHandle, GL_VALIDATE_STATUS, &status);
     if(status == GL_FALSE){
         string msg;
         int length = 0;
-        glGetProgramiv(programHandle, GL_INFO_LOG_LENGTH, &length);
+        funcs->glGetProgramiv(programHandle, GL_INFO_LOG_LENGTH, &length);
         if(length > 0){
             vector<char> log(length);
             GLsizei written;
-            glGetProgramInfoLog(programHandle, length, &written, &log[0]);
+            funcs->glGetProgramInfoLog(programHandle, length, &written, &log[0]);
             msg = formatC("Program failed to validate\n{}", &log[0]);
         } else {
             msg = _("Program failed to validate");
@@ -151,7 +166,7 @@ void GLSLProgram::use()
     if(!programHandle || !isLinked_){
         throw std::runtime_error(_("Shader has not been linked."));
     }
-    glUseProgram(programHandle);
+    funcs->glUseProgram(programHandle);
 }
 
 
@@ -172,20 +187,21 @@ bool GLSLUniformBlockBuffer::initialize(GLSLProgram& program, const std::string&
 {
     this->blockName = blockName;
     
+    funcs = program.functions(); // store funcs
     lastProgramHandle = program.handle();
     
-    GLuint blockIndex = glGetUniformBlockIndex(program.handle(), blockName.c_str());
+    GLuint blockIndex = funcs->glGetUniformBlockIndex(program.handle(), blockName.c_str());
     if(blockIndex == GL_INVALID_INDEX){
         return false;
     }
     
     GLint blockSize;
-    glGetActiveUniformBlockiv(program.handle(), blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
+    funcs->glGetActiveUniformBlockiv(program.handle(), blockIndex, GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
     localBuffer.resize(blockSize);
 
-    glGenBuffers(1, &uboHandle);
-    glBindBuffer(GL_UNIFORM_BUFFER, uboHandle);
-    glBufferData(GL_UNIFORM_BUFFER, localBuffer.size(), NULL, GL_DYNAMIC_DRAW);
+    funcs->glGenBuffers(1, &uboHandle);
+    funcs->glBindBuffer(GL_UNIFORM_BUFFER, uboHandle);
+    funcs->glBufferData(GL_UNIFORM_BUFFER, localBuffer.size(), NULL, GL_DYNAMIC_DRAW);
 
     return true;
 }
@@ -194,13 +210,13 @@ bool GLSLUniformBlockBuffer::initialize(GLSLProgram& program, const std::string&
 GLuint GLSLUniformBlockBuffer::checkUniform(const char* name)
 {
     GLuint index;
-    glGetUniformIndices(lastProgramHandle, 1, &name, &index);
+    funcs->glGetUniformIndices(lastProgramHandle, 1, &name, &index);
 
     if(index >= infos.size()){
         infos.resize(index + 1);
     }
     
-    glGetActiveUniformsiv(lastProgramHandle, 1, &index, GL_UNIFORM_OFFSET, &(infos[index].offset));
+    funcs->glGetActiveUniformsiv(lastProgramHandle, 1, &index, GL_UNIFORM_OFFSET, &(infos[index].offset));
 
     return index;
 }
@@ -209,7 +225,7 @@ GLuint GLSLUniformBlockBuffer::checkUniform(const char* name)
 GLuint GLSLUniformBlockBuffer::checkUniformMatrix(const char* name)
 {
     GLuint index = checkUniform(name);
-    glGetActiveUniformsiv(lastProgramHandle, 1, &index, GL_UNIFORM_MATRIX_STRIDE, &(infos[index].matrixStrides));
+    funcs->glGetActiveUniformsiv(lastProgramHandle, 1, &index, GL_UNIFORM_MATRIX_STRIDE, &(infos[index].matrixStrides));
 
     return index;
 }

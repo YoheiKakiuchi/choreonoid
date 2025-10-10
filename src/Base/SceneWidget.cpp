@@ -11,7 +11,7 @@
 #include "AppConfig.h"
 #include "DisplayValueFormat.h"
 #include "QtEventUtil.h"
-#include <cnoid/GL1SceneRenderer>
+//#include <cnoid/GL1SceneRenderer>
 #include <cnoid/GLSLSceneRenderer>
 #include <cnoid/Selection>
 #include <cnoid/EigenArchive>
@@ -154,7 +154,7 @@ public:
     SgPolygonDrawStylePtr polygonDrawStyle;
     GLSceneRenderer* renderer;
     GLSLSceneRenderer* glslRenderer;
-    GL1SceneRenderer* gl1Renderer;
+    //GL1SceneRenderer* gl1Renderer;
     float lastDevicePixelRatio;
     GLuint prevDefaultFramebufferObject;
     bool isRendering;
@@ -500,12 +500,16 @@ SceneWidget::Impl::Impl(SceneWidget* self)
     glslRenderer = dynamic_cast<GLSLSceneRenderer*>(renderer);
     if(glslRenderer){
         glslRenderer->setLowMemoryConsumptionMode(isLowMemoryConsumptionMode_);
-        gl1Renderer = nullptr;
+        //gl1Renderer = nullptr;
     } else {
-        gl1Renderer = dynamic_cast<GL1SceneRenderer*>(renderer);
+        //gl1Renderer = dynamic_cast<GL1SceneRenderer*>(renderer);
     }
-        
+
+    if (!!MessageView::instance()) {
     renderer->setOutputStream(MessageView::instance()->cout(false));
+    } else {
+        renderer->setOutputStream(std::cerr);
+    }
     renderer->enableUnusedResourceCheck(true);
     renderer->sigCurrentCameraChanged().connect([&](){ onCurrentCameraChanged(); });
     renderer->setCurrentCameraAutoRestorationMode(true);
@@ -732,9 +736,13 @@ void SceneWidget::Impl::initializeGL()
             }
         }
     } else {
+        if (!!MessageView::instance()) {
         MessageView::instance()->putln(
             _("OpenGL initialization failed."), MessageView::Error);
         // This view shoulbe be disabled when the glew initialization is failed.
+        } else {
+            std::cerr << _("OpenGL initialization failed.") << std::endl;
+        }
     }
 }
 
@@ -876,7 +884,11 @@ void SceneWidget::Impl::warnRecursiveEditableNodeSetChange()
     } else {
         message = formatR(_("Recursive editable node set change on scene widget {0}."), name);
     }
+    if(!!MessageView::instance()) {
     MessageView::instance()->putln(message, MessageView::Warning);
+    } else {
+        std::cerr << message << std::endl;
+    }
 }
 
 
@@ -904,9 +916,14 @@ void SceneWidget::Impl::paintGL()
         */
         if(needToClearGLOnFrameBufferChange && prevDefaultFramebufferObject > 0){
             renderer->clearGL();
+            if (!!MessageView::instance()) {
             MessageView::instance()->putln(
                 formatR(_("The OpenGL resources of {0} has been cleared."),
                         self->objectName().toStdString()));
+            } else {
+                std::cerr << formatR(_("The OpenGL resources of {0} has been cleared."),
+                        self->objectName().toStdString()) << std::endl;
+            }
         }
 
         // The default FBO must be updated after the clearGL function
@@ -1858,6 +1875,7 @@ void SceneWidget::Impl::mouseMoveEvent(QMouseEvent* event)
         } else {
             string name = findObjectNameFromNodePath(latestEvent.nodePath());
             auto valueFormat = DisplayValueFormat::instance();
+            if (!!valueFormat) {
             string text;
             if(name.empty()){
                 text = formatC("{0}: ({{0:.{1}f}} {{1:.{1}f}} {{2:.{1}f}})",
@@ -1871,6 +1889,7 @@ void SceneWidget::Impl::mouseMoveEvent(QMouseEvent* event)
                 updateIndicator(formatR(text, p.x(), p.y(), p.z()));
             } else if(valueFormat->isMillimeter()){
                 updateIndicator(formatR(text, p.x() * 1000.0, p.y() * 1000.0, p.z() * 100.0));
+            }
             }
         }
     }
@@ -2723,9 +2742,11 @@ void SceneWidget::setHeadLightEnabled(bool on)
 
 void SceneWidget::setHeadLightLightingFromBack(bool on)
 {
+#if 0
     if(impl->gl1Renderer){
         impl->gl1Renderer->setHeadLightLightingFromBackEnabled(on);
     }
+#endif
 }
 
 
