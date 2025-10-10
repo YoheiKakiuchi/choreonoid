@@ -1,19 +1,21 @@
 #ifndef CNOID_BASE_GLSL_PROGRAM_H
 #define CNOID_BASE_GLSL_PROGRAM_H
 
-#include <cnoid/gl.h>
+
+//#include <cnoid/gl.h>
 #include <cnoid/EigenTypes>
 #include <vector>
 #include <string>
 #include <cstring>
 #include "exportdecl.h"
+#include <QOpenGLExtraFunctions>
 
 namespace cnoid {
 
 class CNOID_EXPORT GLSLProgram
 {
 public:
-    GLSLProgram();
+    explicit GLSLProgram(QOpenGLExtraFunctions* f);
     GLSLProgram(const GLSLProgram&) = delete;
     ~GLSLProgram() = default;
     GLSLProgram& operator=(const GLSLProgram&) = delete;
@@ -28,10 +30,10 @@ public:
     bool isLinked() const { return isLinked_; }
 
     GLuint getUniformLocation(const char* name) const {
-        return glGetUniformLocation(programHandle, name);
+        return funcs->glGetUniformLocation(programHandle, name);
     }
     GLuint getUniformLocation(const std::string& name) const {
-        return glGetUniformLocation(programHandle, name.c_str());
+        return funcs->glGetUniformLocation(programHandle, name.c_str());
     }
     GLuint getSubroutineIndex(GLenum shaderType, const GLchar* name) const {
 #ifdef CNOID_GL_CORE_4_4
@@ -46,9 +48,12 @@ public:
 #endif
     }
 
+    QOpenGLExtraFunctions* functions() const { return funcs; }
+
 private:
     GLuint programHandle;
     bool isLinked_;
+    QOpenGLExtraFunctions* funcs;
 };
 
 
@@ -68,12 +73,12 @@ public:
     GLuint checkUniformMatrix(const char* name);    
     
     void bind(GLSLProgram& program, GLuint bindingPoint) {
-        GLuint blockIndex = glGetUniformBlockIndex(program.handle(), blockName.c_str());
-        glUniformBlockBinding(program.handle(), blockIndex, bindingPoint);
+        GLuint blockIndex = funcs->glGetUniformBlockIndex(program.handle(), blockName.c_str());
+        funcs->glUniformBlockBinding(program.handle(), blockIndex, bindingPoint);
     }
 
     void bindBufferBase(GLuint bindingPoint) {
-        glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, uboHandle);
+        funcs->glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, uboHandle);
     }
 
     void write(GLuint index, float v){
@@ -105,11 +110,12 @@ public:
     }
 
     void flush(){
-        glBindBuffer(GL_UNIFORM_BUFFER, uboHandle);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, localBuffer.size(), &localBuffer[0]);
+        funcs->glBindBuffer(GL_UNIFORM_BUFFER, uboHandle);
+        funcs->glBufferSubData(GL_UNIFORM_BUFFER, 0, localBuffer.size(), &localBuffer[0]);
     }
 
 private:
+    QOpenGLExtraFunctions* funcs = nullptr;
     GLuint uboHandle;
     std::vector<GLubyte> localBuffer;
     struct UniformInfo {

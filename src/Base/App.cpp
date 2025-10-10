@@ -19,7 +19,7 @@
 #include "LayoutSwitcher.h"
 #include "FolderItem.h"
 #include "SubProjectItem.h"
-#include "ExtCommandItem.h"
+//#include "ExtCommandItem.h"
 #include "SceneItem.h"
 #include "SceneGeometryMeasurementTracker.h"
 #include "RawSceneItem.h"
@@ -217,6 +217,8 @@ App::Impl::Impl(App* self, int& argc, char** argv, const std::string& appName, c
     doListQtStyles = false;
 
     // OpenGL settings
+    GLSceneRenderer::initializeClass();
+#if 0
     QSurfaceFormat glFormat = QSurfaceFormat::defaultFormat();
 
     char* CNOID_USE_GLSL = getenv("CNOID_USE_GLSL");
@@ -240,6 +242,7 @@ App::Impl::Impl(App* self, int& argc, char** argv, const std::string& appName, c
         AppConfig::archive()->openMapping("OpenGL")->get("vsync", false));
 
     QSurfaceFormat::setDefaultFormat(glFormat);
+#endif
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
@@ -463,7 +466,7 @@ void App::Impl::initialize()
     
     FolderItem::initializeClass(ext);
     SubProjectItem::initializeClass(ext);
-    ExtCommandItem::initializeClass(ext);
+    //ExtCommandItem::initializeClass(ext);
     AbstractSeqItem::initializeClass(ext);
     AbstractMultiSeqItem::initializeClass(ext);
     MultiValueSeqItem::initializeClass(ext);

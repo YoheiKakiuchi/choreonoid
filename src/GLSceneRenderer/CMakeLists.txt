@@ -1,3 +1,9 @@
+if(${EMSCRIPTEN})
+  cmake_minimum_required(VERSION 3.15)
+  project(emscripten_build)
+  include(CMakeLists.em.txt)
+else()
+
 set(sources
   GLSceneRenderer.cpp
   GL1SceneRenderer.cpp
@@ -35,3 +41,5 @@ endif()
 
 choreonoid_add_library(${target} SHARED ${sources} ${mofiles} ${RC_SRCS} HEADERS ${headers})
 target_link_libraries(${target} ${libraries})
+
+endif(${EMSCRIPTEN})

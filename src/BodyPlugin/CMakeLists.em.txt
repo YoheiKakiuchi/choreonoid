@@ -1,11 +1,3 @@
-if(${EMSCRIPTEN})
-  cmake_minimum_required(VERSION 3.15)
-  project(emscripten_build)
-  include(CMakeLists.em.txt)
-else()
-#set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g")
-#set_source_files_properties(SimulatorItem.cpp PROPERTIES COMPILE_FLAGS "-O0 -g")
 
 set(sources
   BodyPlugin.cpp
@@ -143,18 +135,22 @@ set(headers
 
 set(target CnoidBodyPlugin)
 
-choreonoid_make_gettext_mo_files(${target} mofiles)
+#choreonoid_make_gettext_mo_files(${target} mofiles)
 
-choreonoid_qt_add_resources(RC_SRCS BodyPlugin.qrc)
+#choreonoid_qt_add_resources(RC_SRCS BodyPlugin.qrc)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets Svg)
+qt6_add_resources(RC_SRCS BodyPlugin.qrc)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-choreonoid_add_plugin(${target} ${sources} ${mofiles} ${RC_SRCS} HEADERS ${headers})
+#choreonoid_add_plugin(${target} ${sources} ${mofiles} ${RC_SRCS} HEADERS ${headers})
+add_library(${target} ${sources} ${RC_SRCS})
+target_link_libraries(${target} PUBLIC CnoidBody CnoidGLSceneRenderer Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg)
 
-target_link_libraries(${target} PUBLIC CnoidBody CnoidGLSceneRenderer)
-
-if(ENABLE_PYTHON)
-  add_subdirectory(pybind11)
-endif()
-
-add_subdirectory(lua)
+#target_link_libraries(${target} PUBLIC CnoidBody CnoidGLSceneRenderer)
+#
+#if(ENABLE_PYTHON)
+#  add_subdirectory(pybind11)
+#endif()
+#
+#add_subdirectory(lua)

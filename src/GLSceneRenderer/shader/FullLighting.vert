@@ -1,4 +1,5 @@
-#version 330
+#version 300 es
+precision highp float;
 
 #define MAX_NUM_SHADOWS 2
 
@@ -7,6 +8,7 @@ layout (location = 1) in vec3 vertexNormal;
 layout (location = 2) in vec2 vertexTexCoord;
 layout (location = 3) in vec3 vertexColor;
 
+#if 0
 out VertexData {
     vec3 position;
     vec3 normal;
@@ -29,6 +31,7 @@ layout(std140) uniform TransformBlock {
     mat4 shadowMatrix;
 };
 */
+#endif
 
 uniform mat4 modelViewMatrix;
 uniform mat4 MVP;
@@ -38,6 +41,7 @@ uniform mat4 shadowMatrices[MAX_NUM_SHADOWS];
 
 void main()
 {
+#if 0
     outData.normal = normalize(normalMatrix * vertexNormal);
     outData.position = vec3(modelViewMatrix * vertexPosition);
 
@@ -47,6 +51,6 @@ void main()
     for(int i=0; i < numShadows; ++i){
         outData.shadowCoords[i] = shadowMatrices[i] * vertexPosition;
     }
-    
+#endif
     gl_Position = MVP * vertexPosition;
 }

@@ -1017,7 +1017,11 @@ void BodyItem::Impl::notifyKinematicStateChange(bool requestFK, bool requestVelF
             isAccFkRequested |= requestAccFK;
         }
         if(isDirect){
+#if defined(EMSCRIPTEN) // HOTFIX
+            sigKinematicStateChanged.emit_fixed();
+#else
             sigKinematicStateChanged.emit();
+#endif
         } else {
             sigKinematicStateChanged.request();
         }

@@ -1,74 +1,53 @@
-#version 330
-//#version 400
-
-// See the description written in the corresponding geometry shader code
-// #define USE_DOUBLE_PRECISION_IN_WIREFRAME_RENDERING 1
+#version 300 es
+// doubleはGLESに存在しないため、USE_DOUBLE_PRECISION_IN_WIREFRAME_RENDERINGは無効化
+precision mediump float;
+precision highp int;
+precision highp sampler2DShadow; // Shadow Samplerには高い精度を推奨
 
 #define MAX_NUM_LIGHTS 20
 #define MAX_NUM_SHADOWS 2
-
 #define USE_BLINN_PHONG_MODEL 1
 
-in VertexData {
-    vec3 position;
-    vec3 normal;
-    vec2 texCoord;
-    vec3 colorV;
-    vec4 shadowCoords[MAX_NUM_SHADOWS];
+#if 0
+// 頂点シェーダーからの入力
+in vec3 v_position;
+in vec3 v_normal;
+in vec2 v_texCoord;
+in vec3 v_colorV;
+in vec4 v_shadowCoords[MAX_NUM_SHADOWS];
 
-    flat int edgeSituation;
-    noperspective vec3 edgeDistance;
-
-#ifndef USE_DOUBLE_PRECISION_IN_WIREFRAME_RENDERING
-    flat vec2 vertexA;
-    flat vec2 directionA;
-    flat vec2 vertexB;
-    flat vec2 directionB;
-#else
-    flat dvec2 vertexA;
-    flat dvec2 directionA;
-    flat dvec2 vertexB;
-    flat dvec2 directionB;
+// ワイヤーフレーム用データ
+flat in int v_edgeSituation;
+noperspective in vec3 v_edgeDistance;
+flat in vec2 v_vertexA;
+flat in vec2 v_directionA;
+flat in vec2 v_vertexB;
+flat in vec2 v_directionB;
 #endif
 
-} inData;
-
-/*
-uniform MaterialBlock {
-    vec3 diffuseColor;
-    vec3 ambientColor;
-    vec3 specularColor;
-    float specularExponent;
-};
-*/
-
+// Uniforms
 uniform vec3 diffuseColor;
 uniform float ambientIntensity;
 uniform vec3 specularColor;
 uniform vec3 emissionColor;
 uniform float specularExponent;
-uniform float alpha = 1.0;
+uniform float alpha;
 
 uniform int numLights;
 
 struct LightInfo {
-    // the fourth element is 0.0 if the light is a directional light
     vec4 position;
     vec3 intensity;
     vec3 ambientIntensity;
     float constantAttenuation;
     float linearAttenuation;
     float quadraticAttenuation;
-    // The following value is 0.0 if the light is not a spot light
     float cutoffAngle;
     float beamWidth;
     float cutoffExponent;
     vec3 direction;
 };
-
 uniform LightInfo lights[MAX_NUM_LIGHTS];
-
-vec3 reflectionElements[MAX_NUM_LIGHTS];
 
 uniform bool isTextureEnabled;
 uniform sampler2D colorTexture;
@@ -78,7 +57,7 @@ uniform bool isHighlightEnabled = false;
 uniform vec3 fogColor;
 uniform float maxFogDist;
 uniform float minFogDist;
-uniform bool isFogEnabled = false;
+uniform bool isFogEnabled; // 宣言時の初期化は不可
 
 uniform bool isFaceEnabled;
 uniform bool isWireframeEnabled;
@@ -86,27 +65,16 @@ uniform vec4 wireframeColor;
 uniform float wireframeWidth;
 
 uniform int numShadows;
-
 struct ShadowInfo {
     int lightIndex;
     sampler2DShadow shadowMap;
 };
-
-/*
-  All the shadowMap variable values in the following array must be valid for some GPUs
-  even if the valid number of shadow lights are less than the maximum number of shadows
-  and not all the shdaowMaps are used in rendering. The proprietary drivers of Radeon GPUs
-  require this condition. To achieve it, the initializeFrameRendering function of
-  PhongShadowLightingProgram sets all the variable values. Note that for GPUs (drivers)
-  including NVIDIA GPUs and Intel GPUs, you don't have to set a valid value to unused
-  shadowMap variables, but the same implementation is used for those GPUs.
-*/
 uniform ShadowInfo shadows[MAX_NUM_SHADOWS];
-
 uniform bool isShadowAntiAliasingEnabled;
 
 layout(location = 0) out vec4 color4;
 
+#if 0 //EM
 vec3 calcDiffuseAndSpecularElements(LightInfo light, vec3 diffuseColor);
 float calcEdgeDistance();
 
@@ -328,4 +296,12 @@ float calcEdgeDistance()
     }
 
     return edgeDistance;
+#else
+// グローバル変数
+vec3 reflectionElements[MAX_NUM_LIGHTS];
+
+void main()
+{
+  color4 = vec4(diffuseColor, 1.0);
 }
+#endif

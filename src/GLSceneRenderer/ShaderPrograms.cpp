@@ -9,6 +9,11 @@
 #include <cnoid/Format>
 #include "gettext.h"
 
+// HOTFIX
+#define GL_GEOMETRY_SHADER 0x8DD9
+#define GL_CLAMP_TO_BORDER 0x812D
+#define GL_TEXTURE_BORDER_COLOR 0x1004
+
 using namespace std;
 using namespace cnoid;
 
@@ -196,7 +201,7 @@ public:
     bool isMaterialAmbientNormalizationEnabled;
 
     void initialize(GLSLProgram& glsl);
-    void setMaterial(const SgMaterial* material);
+    void setMaterial(const SgMaterial* material, QOpenGLExtraFunctions* f);
 };
 
 
@@ -277,9 +282,10 @@ public:
 }
 
 
-ShaderProgram::ShaderProgram(std::initializer_list<ShaderSource> sources)
+ShaderProgram::ShaderProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f)
 {
-    glslProgram_ = new GLSLProgram;
+    glFuncs = f;
+    glslProgram_ = new GLSLProgram(f);
     capabilities_ = NoCapability;
     impl = new Impl(sources);
 }
@@ -364,17 +370,14 @@ void ShaderProgram::clearHighlightColor()
 }
 
 
-NolightingProgram::NolightingProgram()
+NolightingProgram::NolightingProgram(QOpenGLExtraFunctions* f)
     : NolightingProgram(
         { { ":/GLSceneRenderer/shader/NoLighting.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/NoLighting.frag", GL_FRAGMENT_SHADER } })
-{
+          { ":/GLSceneRenderer/shader/NoLighting.frag", GL_FRAGMENT_SHADER } }, f)
+{ }
 
-}
-      
-
-NolightingProgram::NolightingProgram(std::initializer_list<ShaderSource> sources)
-    : ShaderProgram(sources)
+NolightingProgram::NolightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f)
+    : ShaderProgram(sources, f)
 {
     impl = new Impl;
 }
@@ -406,17 +409,14 @@ void NolightingProgram::setTransform(const Matrix4& PV, const Isometry3& V, cons
 }
 
 
-SolidColorProgram::SolidColorProgram()
+SolidColorProgram::SolidColorProgram(QOpenGLExtraFunctions* f)
     : SolidColorProgram(
         { { ":/GLSceneRenderer/shader/SolidColor.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/SolidColor.frag", GL_FRAGMENT_SHADER } })
-{
+          { ":/GLSceneRenderer/shader/SolidColor.frag", GL_FRAGMENT_SHADER } }, f)
+{ }
 
-}
-
-
-SolidColorProgram::SolidColorProgram(std::initializer_list<ShaderSource> sources)
-    : NolightingProgram(sources)
+SolidColorProgram::SolidColorProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f)
+    : NolightingProgram(sources, f)
 {
     impl = new Impl;
 }
@@ -492,17 +492,14 @@ bool SolidColorProgram::isColorChangable() const
 }
 
 
-SolidColorExProgram::SolidColorExProgram()
+SolidColorExProgram::SolidColorExProgram(QOpenGLExtraFunctions* f)
     : SolidColorExProgram(
         { { ":/GLSceneRenderer/shader/SolidColor.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/SolidColorEx.frag", GL_FRAGMENT_SHADER } })
-{
+          { ":/GLSceneRenderer/shader/SolidColorEx.frag", GL_FRAGMENT_SHADER } }, f)
+{ }
 
-}
-
-
-SolidColorExProgram::SolidColorExProgram(std::initializer_list<ShaderSource> sources)
-    : SolidColorProgram(sources)
+SolidColorExProgram::SolidColorExProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f)
+    : SolidColorProgram(sources, f)
 {
     setCapability(Transparency);
     impl = new Impl;
@@ -575,11 +572,11 @@ void SolidColorExProgram::setVertexColorEnabled(bool on)
 }
 
 
-ThickLineProgram::ThickLineProgram()
+ThickLineProgram::ThickLineProgram(QOpenGLExtraFunctions* f)
     : SolidColorExProgram(
         { { ":/GLSceneRenderer/shader/SolidColor.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/ThickLine.geom", GL_GEOMETRY_SHADER },
-          { ":/GLSceneRenderer/shader/SolidColorEx.frag", GL_FRAGMENT_SHADER } })
+//          { ":/GLSceneRenderer/shader/ThickLine.geom", GL_GEOMETRY_SHADER },
+          { ":/GLSceneRenderer/shader/SolidColorEx.frag", GL_FRAGMENT_SHADER } }, f)
 {
     impl = new Impl;
 }
@@ -610,7 +607,7 @@ void ThickLineProgram::activate()
     glUniform1f(impl->lineWidthLocation, impl->lineWidth);
 
     if(impl->isViewportSizeInvalidated){
-        glUniform2f(impl->viewportSizeLocation, impl->viewportWidth, impl->viewportHeight);
+        funcs()->glUniform2f(impl->viewportSizeLocation, impl->viewportWidth, impl->viewportHeight); // TODO FIX
     }
 }
 
@@ -629,11 +626,11 @@ void ThickLineProgram::setLineWidth(float width)
 }
 
 
-SolidPointProgram::SolidPointProgram()
+SolidPointProgram::SolidPointProgram(QOpenGLExtraFunctions* f)
     : SolidColorProgram(
         { { ":/GLSceneRenderer/shader/SolidPoint.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/SolidPoint.geom", GL_GEOMETRY_SHADER },
-          { ":/GLSceneRenderer/shader/SolidPoint.frag", GL_FRAGMENT_SHADER } })
+//          { ":/GLSceneRenderer/shader/SolidPoint.geom", GL_GEOMETRY_SHADER },
+          { ":/GLSceneRenderer/shader/SolidPoint.frag", GL_FRAGMENT_SHADER } }, f)
 {
     impl = new Impl;
 }
@@ -676,11 +673,15 @@ void SolidPointProgram::activate()
     SolidColorProgram::activate();
 
     if(impl->isViewportSizeInvalidated){
+#if 0
         glUniform2f(impl->viewportSizeLocation, impl->viewportWidth, impl->viewportHeight);
         if(impl->depthTextureSizeLocation >= 0){
             glUniform2i(impl->depthTextureSizeLocation, impl->viewportWidth, impl->viewportHeight);
         }
         impl->isViewportSizeInvalidated = false;
+#else
+        funcs()->glUniform2f(impl->viewportSizeLocation, impl->viewportWidth, impl->viewportHeight); // TODO FIX
+#endif
     }
 
     glDisable(GL_DEPTH_TEST);
@@ -738,10 +739,10 @@ void SolidPointProgram::setReversedDepth(bool on)
 }
 
 
-TextProgram::TextProgram()
+TextProgram::TextProgram(QOpenGLExtraFunctions* f)
     : NolightingProgram(
         { { ":/GLSceneRenderer/shader/Text.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/Text.frag", GL_FRAGMENT_SHADER } })
+          { ":/GLSceneRenderer/shader/Text.frag", GL_FRAGMENT_SHADER } }, f)
 {
     color.setOnes();
     textureUnit = 0;
@@ -776,10 +777,10 @@ void TextProgram::setTextureUnit(int textureUnit)
 }
 
 
-OutlineProgram::OutlineProgram()
+OutlineProgram::OutlineProgram(QOpenGLExtraFunctions* f)
     : SolidColorProgram(
         { { ":/GLSceneRenderer/shader/Outline.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/SolidColor.frag", GL_FRAGMENT_SHADER } })
+          { ":/GLSceneRenderer/shader/SolidColor.frag", GL_FRAGMENT_SHADER } }, f)
 {
     setColorChangable(false);
 }
@@ -809,8 +810,8 @@ void OutlineProgram::setLineWidth(float /* width */)
 }
 
 
-LightingProgram::LightingProgram(std::initializer_list<ShaderSource> sources)
-    : ShaderProgram(sources)
+LightingProgram::LightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f)
+    : ShaderProgram(sources, f)
 {
     setCapability(Lighting);
 }
@@ -822,10 +823,10 @@ void LightingProgram::setFog(const SgFog* fog)
 }
 
 
-MinimumLightingProgram::MinimumLightingProgram()
+MinimumLightingProgram::MinimumLightingProgram(QOpenGLExtraFunctions* f)
     : LightingProgram(
         { { ":/GLSceneRenderer/shader/MinLighting.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/MinLighting.frag", GL_FRAGMENT_SHADER } })
+          { ":/GLSceneRenderer/shader/MinLighting.frag", GL_FRAGMENT_SHADER } }, f)
 {
     impl = new Impl;
     impl->isMaterialAmbientNormalizationEnabled = true;
@@ -979,8 +980,8 @@ void MinimumLightingProgram::setMaterialAmbientNormalizationEnabled(bool on)
 }
 
 
-BasicLightingProgram::BasicLightingProgram(std::initializer_list<ShaderSource> sources)
-    : LightingProgram(sources)
+BasicLightingProgram::BasicLightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f)
+    : LightingProgram(sources, f)
 {
     impl = new Impl;
 }
@@ -1094,8 +1095,8 @@ void BasicLightingProgram::setFog(const SgFog* fog)
 }
 
 
-MaterialLightingProgram::MaterialLightingProgram(std::initializer_list<ShaderSource> sources)
-    : BasicLightingProgram(sources)
+MaterialLightingProgram::MaterialLightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f)
+    : BasicLightingProgram(sources, f)
 {
     setCapability(Transparency);
     impl = new Impl;
@@ -1155,9 +1156,9 @@ void MaterialLightingProgram::Impl::initialize(GLSLProgram& glsl)
     isHighlightEnabled = false;
 
     glsl.use();
-    glUniform1i(isTextureEnabledLocation, isTextureEnabled);
-    glUniform1i(colorTextureLocation, colorTextureUnit);
-    glUniform1i(isVertexColorEnabledLocation, isVertexColorEnabled);
+    glsl.functions()->glUniform1i(isTextureEnabledLocation, isTextureEnabled);
+    glsl.functions()->glUniform1i(colorTextureLocation, colorTextureUnit);
+    glsl.functions()->glUniform1i(isVertexColorEnabledLocation, isVertexColorEnabled);
 }
     
 
@@ -1171,7 +1172,7 @@ void MaterialLightingProgram::activate()
 void MaterialLightingProgram::setMaterial(const SgMaterial* material)
 {
     if(material){
-        impl->setMaterial(material);
+        impl->setMaterial(material, glFuncs);
         setVertexColorEnabled(false);
     } else {
         std::fill(impl->stateFlag.begin(), impl->stateFlag.end(), false);
@@ -1179,39 +1180,47 @@ void MaterialLightingProgram::setMaterial(const SgMaterial* material)
 }
 
 
-void MaterialLightingProgram::Impl::setMaterial(const SgMaterial* material)
+void MaterialLightingProgram::Impl::setMaterial(const SgMaterial* material, QOpenGLExtraFunctions* func)
 {
     const auto& dcolor = material->diffuseColor();
     if(!stateFlag[DIFFUSE_COLOR] || diffuseColor != dcolor){
-        glUniform3fv(diffuseColorLocation, 1, dcolor.data());
+        func->glUniform3fv(diffuseColorLocation, 1, dcolor.data());
         diffuseColor = dcolor;
         stateFlag[DIFFUSE_COLOR] = true;
     }
 
+#if 0
     float aintensity = isMaterialAmbientNormalizationEnabled ? 1.0f : material->ambientIntensity();
     if(!stateFlag[AMBIENT_INTENSITY] || ambientIntensity != aintensity){
         glUniform1f(ambientIntensityLocation, aintensity);
         ambientIntensity = aintensity;
         stateFlag[AMBIENT_INTENSITY] = true;
+#else
+    Vector3f acolor = material->ambientIntensity() * dcolor;
+    if(!stateFlag[AMBIENT_COLOR] || ambientColor != acolor){
+        func->glUniform3fv(ambientColorLocation, 1, acolor.data());
+        ambientColor = acolor;
+        stateFlag[AMBIENT_COLOR] = true;
+#endif
     }
 
     const auto& ecolor = material->emissiveColor();
     if(!stateFlag[EMISSION_COLOR] || emissionColor != ecolor){
-        glUniform3fv(emissionColorLocation, 1, ecolor.data());
+        func->glUniform3fv(emissionColorLocation, 1, ecolor.data());
         emissionColor = ecolor;
         stateFlag[EMISSION_COLOR] = true;
     }
 
     const auto& scolor = material->specularColor();
     if(!stateFlag[SPECULAR_COLOR] || specularColor != scolor){
-        glUniform3fv(specularColorLocation, 1, scolor.data());
+        func->glUniform3fv(specularColorLocation, 1, scolor.data());
         specularColor = scolor;
         stateFlag[SPECULAR_COLOR] = true;
     }
 
     float e = material->specularExponent();
     if(!stateFlag[SPECULAR_EXPONENT] || specularExponent != e){
-        glUniform1f(specularExponentLocation, e);
+        func->glUniform1f(specularExponentLocation, e);
         specularExponent = e;
         stateFlag[SPECULAR_EXPONENT] = true;
     }
@@ -1219,7 +1228,7 @@ void MaterialLightingProgram::Impl::setMaterial(const SgMaterial* material)
     float transparency = std::max(material->transparency(), minTransparency);
     float a = 1.0 - transparency;
     if(!stateFlag[ALPHA] || alpha != a){
-        glUniform1f(alphaLocation, a);
+        func->glUniform1f(alphaLocation, a);
         alpha = a;
         stateFlag[ALPHA] = true;
     }
@@ -1281,18 +1290,18 @@ void MaterialLightingProgram::setMinimumTransparency(float t)
 }
 
 
-FullLightingProgram::FullLightingProgram()
+FullLightingProgram::FullLightingProgram(QOpenGLExtraFunctions* f)
     : FullLightingProgram(
         { { ":/GLSceneRenderer/shader/FullLighting.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/FullLighting.geom", GL_GEOMETRY_SHADER },
-          { ":/GLSceneRenderer/shader/FullLighting.frag", GL_FRAGMENT_SHADER } })
+//          { ":/GLSceneRenderer/shader/FullLighting.geom", GL_GEOMETRY_SHADER },
+          { ":/GLSceneRenderer/shader/FullLighting.frag", GL_FRAGMENT_SHADER } }, f)
 {
     
 }
 
 
-FullLightingProgram::FullLightingProgram(std::initializer_list<ShaderSource> sources)
-    : MaterialLightingProgram(sources)
+FullLightingProgram::FullLightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f)
+    : MaterialLightingProgram(sources, f)
 {
     impl = new Impl(this);
 }
@@ -1359,8 +1368,8 @@ void FullLightingProgram::initialize()
 
 void FullLightingProgram::Impl::initialize(GLSLProgram& glsl)
 {
+#if 0
     useUniformBlockToPassTransformationMatrices = transformBlockBuffer.initialize(glsl, "TransformBlock");
-
     if(useUniformBlockToPassTransformationMatrices){
         modelViewMatrixIndex = transformBlockBuffer.checkUniformMatrix("modelViewMatrix");
         normalMatrixIndex = transformBlockBuffer.checkUniformMatrix("normalMatrix");
@@ -1388,9 +1397,10 @@ void FullLightingProgram::Impl::initialize(GLSLProgram& glsl)
     // This is necessary to make all the shadow maps work correctly.
     // Does QOpenGLWidget do some operation on the current active texture unit
     // just after finishing the initializeGL function?
-    glActiveTexture(GL_TEXTURE0);
+    QOpenGLExtraFunctions* f = self->funcs();
+    f->glActiveTexture(GL_TEXTURE0);
     
-    glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+    f->glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
 
     isShadowAntiAliasingEnabledLocation = glsl.getUniformLocation("isShadowAntiAliasingEnabled");
 
@@ -1403,16 +1413,18 @@ void FullLightingProgram::Impl::initialize(GLSLProgram& glsl)
     glsl.use();
     for(int i=0; i < maxNumShadows; ++i){
         auto& shadow = shadowInfos[i];
-        glUniform1i(shadow.shadowMapLocation, shadowMapTextureTopIndex + i);
+        f->glUniform1i(shadow.shadowMapLocation, shadowMapTextureTopIndex + i);
     }
 
     // Reset reversed depth state to ensure proper initialization on first render
     useReversedDepthInitialized = false;
+#endif
 }
 
 
 void FullLightingProgram::Impl::initializeShadowInfo(GLSLProgram& glsl, int index)
 {
+    QOpenGLExtraFunctions* f = self->funcs();
     ShadowInfo& shadow = shadowInfos[index];
 
     shadow.shadowMatrixLocation = glsl.getUniformLocation(formatC("shadowMatrices[{}]", index));
@@ -1421,10 +1433,11 @@ void FullLightingProgram::Impl::initializeShadowInfo(GLSLProgram& glsl, int inde
     shadow.lightIndexLocation = glsl.getUniformLocation(prefix + "lightIndex");
     shadow.shadowMapLocation = glsl.getUniformLocation(prefix + "shadowMap");
 
-    glGenFramebuffers(1, &shadow.frameBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, shadow.frameBuffer);
+    f->glGenFramebuffers(1, &shadow.frameBuffer);
+    f->glBindFramebuffer(GL_FRAMEBUFFER, shadow.frameBuffer);
 
     static const GLfloat border[] = { 1.0f, 0.0f, 0.0f, 0.0f };
+#if 0
     glGenTextures(1, &shadow.depthTexture);
     glActiveTexture(GL_TEXTURE0 + shadowMapTextureTopIndex + index);
     glBindTexture(GL_TEXTURE_2D, shadow.depthTexture);
@@ -1437,13 +1450,28 @@ void FullLightingProgram::Impl::initializeShadowInfo(GLSLProgram& glsl, int inde
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+#else
+    f->glGenTextures(1, &shadow.depthTexture);
+    f->glActiveTexture(GL_TEXTURE0 + shadowMapTextureTopIndex + index);
+    f->glBindTexture(GL_TEXTURE_2D, shadow.depthTexture);
+    f->glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, shadowMapWidth, shadowMapHeight,
+                    0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    f->glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
+    f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadow.depthTexture, 0);
+#endif
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadow.depthTexture, 0);
+    //f->glDrawBuffer(GL_NONE);
+    GLenum buf[1] = {GL_NONE};
+    f->glDrawBuffers(1, buf);
+    f->glReadBuffer(GL_NONE);
     
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    
-    GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    GLenum result = f->glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if(result != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error(_("Framebuffer is not complete.\n"));
     }
@@ -1452,10 +1480,11 @@ void FullLightingProgram::Impl::initializeShadowInfo(GLSLProgram& glsl, int inde
 
 void FullLightingProgram::release()
 {
+    QOpenGLExtraFunctions* f = funcs(); // TODO : fix
     for(int i=0; i < impl->maxNumShadows; ++i){
         auto& shadow = impl->shadowInfos[i];
-        glDeleteFramebuffers(1, &shadow.frameBuffer);
-        glDeleteTextures(1, &shadow.depthTexture);
+        f->glDeleteFramebuffers(1, &shadow.frameBuffer);
+        f->glDeleteTextures(1, &shadow.depthTexture);
     }
     impl->shadowInfos.clear();
 
@@ -1480,7 +1509,7 @@ void FullLightingProgram::Impl::activate(GLSLProgram& glsl)
 
     updateShaderWireframeState();
 
-    glDisable(GL_CULL_FACE);    
+    glsl.functions()->glDisable(GL_CULL_FACE);    
 }
 
 
@@ -1578,15 +1607,15 @@ void FullLightingProgram::Impl::updateShaderWireframeState()
             0.0f, 0.0f, 1.0f, 0.0f,
             0.0f, 0.0f, 0.0f, 1.0f;
         
-        glUniformMatrix4fv(viewportMatrixLocation, 1, GL_FALSE, V.data());
+        self->glUniformMatrix4fv(viewportMatrixLocation, 1, GL_FALSE, V.data());
         isViewportMatrixInvalidated = false;
     }
-    glUniform1i(isFaceEnabledLocation, isFaceEnabled);
-    glUniform1i(isWireframeEnabledLocation, isWireframeEnabled);
-    
+    self->glUniform1i(isFaceEnabledLocation, isFaceEnabled);
+    self->glUniform1i(isWireframeEnabledLocation, isWireframeEnabled);
+
     if(isWireframeEnabled){
-        glUniform4fv(wireframeColorLocation, 1, wireframeColor.data());
-        glUniform1f(wireframeWidthLocation, wireframeWidth);
+        self->glUniform4fv(wireframeColorLocation, 1, wireframeColor.data());
+        self->glUniform1f(wireframeWidthLocation, wireframeWidth);
     }
 }
 
@@ -1762,7 +1791,9 @@ void FullLightingProgram::resetReversedDepthState()
 
 
 ShadowMapProgram::ShadowMapProgram(FullLightingProgram* phongShadowProgram)
-    : mainProgram(phongShadowProgram)
+    : NolightingProgram(
+        { { ":/GLSceneRenderer/shader/Text.vert", GL_VERTEX_SHADER }, /* dummy replaced later if needed */ }, phongShadowProgram->funcs()),
+      mainProgram(phongShadowProgram)
 {
 
 }
@@ -1807,15 +1838,16 @@ void ShadowMapProgram::activate()
 {
     NolightingProgram::activate();
     
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
+    funcs()->glEnable(GL_CULL_FACE); // TODO FIX
+    funcs()->glCullFace(GL_FRONT);   // TODO FIX
 }
     
 
 void ShadowMapProgram::deactivate()
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, mainProgram->impl->defaultFBO);
-    glCullFace(GL_BACK);
+    funcs()->glBindFramebuffer(GL_FRAMEBUFFER, mainProgram->impl->defaultFBO); // TODO FIX
+    funcs()->glCullFace(GL_BACK); // TODO FIX
 
     NolightingProgram::deactivate();
 }
+

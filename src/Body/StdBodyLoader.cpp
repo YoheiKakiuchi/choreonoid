@@ -220,9 +220,9 @@ public:
     double defaultCreaseAngle;
     bool isVerbose;
     bool isShapeLoadingEnabled;
-
+#if !defined(EMSCRIPTEN)
     BodyHandlerManager bodyHandlerManager;
-
+#endif
     Impl(StdBodyLoader* self);
     ~Impl();
     void updateCustomNodeFunctions();
@@ -269,8 +269,9 @@ public:
     void addSubBodyLinks(const Body* subBody, Mapping* node);
     void readExtraJoints(Mapping* topNode);
     void readExtraJoint(Mapping* node);
+#if !defined(EMSCRIPTEN)
     void readBodyHandlers(ValueNode* node);
-    
+#endif
     bool isDegreeMode() const {
         return sceneReader.isDegreeMode();
     }
@@ -483,7 +484,9 @@ void StdBodyLoader::setMessageSink(std::ostream& os)
 {
     impl->os_ = &os;
     impl->sceneReader.setMessageSink(os);
+#if !defined(EMSCRIPTEN)
     impl->bodyHandlerManager.setMessageSink(os);
+#endif
 }
 
 
@@ -680,10 +683,11 @@ bool StdBodyLoader::Impl::readTopNode(Body* body, Mapping* topNode)
                 topNode->setForcedRadianMode();
             }
             body->resetInfo(topNode);
-
+#if !defined(EMSCRIPTEN)
             if(bodyHandlers){
                 readBodyHandlers(bodyHandlers);
             }
+#endif
         }
         
     } catch(const ValueNode::Exception& ex){
@@ -882,9 +886,9 @@ bool StdBodyLoader::Impl::readBody(Mapping* topNode)
     }
 
     readExtraJoints(topNode);
-
+#if !defined(EMSCRIPTEN)
     body->installCustomizer(); // deprecated
-
+#endif
     return true;
 }
 
@@ -2011,7 +2015,7 @@ void StdBodyLoader::Impl::readExtraJoint(Mapping* info)
     body->addExtraJoint(joint);
 }
 
-
+#if !defined(EMSCRIPTEN)
 void StdBodyLoader::Impl::readBodyHandlers(ValueNode* node)
 {
     if(node){
@@ -2024,7 +2028,7 @@ void StdBodyLoader::Impl::readBodyHandlers(ValueNode* node)
         }
     }
 }
-
+#endif
 
 void StdBodyLoader::registerNodeType
 (const char* typeName, std::function<bool(StdBodyLoader* loader, const Mapping* info)> readFunction)

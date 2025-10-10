@@ -1,6 +1,8 @@
 #include "Body.h"
 #include "BodyHandler.h"
+#if !defined(EMSCRIPTEN)
 #include "BodyCustomizerInterface.h"
+#endif
 #include <cnoid/CloneMap>
 #include <cnoid/SceneGraph>
 #include <cnoid/EigenUtil>
@@ -62,13 +64,13 @@ public:
     std::string modelName;
 
     std::vector<BodyHandlerPtr> handlers;
-
+#if !defined(EMSCRIPTEN)
     // Members for the customizer
     BodyCustomizerHandle customizerHandle;
     BodyCustomizerInterface* customizerInterface;
     BodyHandleEntity bodyHandleEntity;
     BodyHandle bodyHandle;
-
+#endif
     MultiplexInfoPtr multiplexInfo;
     Signal<void(bool on)> sigExistenceChanged;
         
@@ -80,7 +82,9 @@ public:
         Link*& bestLeaf, int& bestDof, int& bestTrail);
     void removeDeviceFromDeviceNameMap(Device* device);
     MultiplexInfo* getOrCreateMultiplexInfo(Body* self);
+#if !defined(EMSCRIPTEN)
     bool installCustomizer(BodyCustomizerInterface* customizerInterface);
+#endif
 };
 
 }
@@ -112,10 +116,12 @@ Body::Body(Link* rootLink)
 
 Body::Impl::Impl(Body* self)
 {
+#if !defined(EMSCRIPTEN)
     customizerHandle = 0;
     customizerInterface = nullptr;
     bodyHandleEntity.body = self;
     bodyHandle = &bodyHandleEntity;
+#endif
 }
 
 
@@ -185,10 +191,11 @@ void Body::copyFrom(const Body* org, CloneMap* cloneMap)
             }
         }
     }
-
+#if !defined(EMSCRIPTEN)
     if(org->impl->customizerInterface){
         installCustomizer(org->impl->customizerInterface);
     }
+#endif
 }
 
 
@@ -245,10 +252,11 @@ Body::~Body()
 {
     clearDevices();
     setRootLink(nullptr);
-    
+#if !defined(EMSCRIPTEN)
     if(impl->customizerHandle){
         impl->customizerInterface->destroy(impl->customizerHandle);
     }
+#endif
     delete impl;
 }
 
@@ -1027,7 +1035,7 @@ BodyHandler* Body::handler(int index)
     return impl->handlers[index];
 }
 
-
+#if !defined(EMSCRIPTEN)
 BodyCustomizerHandle Body::customizerHandle() const
 {
     return impl->customizerHandle;
@@ -1108,7 +1116,6 @@ bool Body::Impl::installCustomizer(BodyCustomizerInterface* customizerInterface)
     return (customizerHandle != 0);
 }
 
-
 static inline Link* extractLink(BodyHandle bodyHandle, int linkIndex)
 {
     return static_cast<BodyHandleEntity*>(bodyHandle)->body->link(linkIndex);
@@ -1145,8 +1152,9 @@ static double* getJointTorqueForcePtr(BodyHandle bodyHandle, int linkIndex)
 {
     return &(extractLink(bodyHandle, linkIndex)->u());
 }
+#endif
 
-
+#if !defined(EMSCRIPTEN)
 BodyInterface* Body::bodyInterface()
 {
     static BodyInterface interface = {
@@ -1160,7 +1168,7 @@ BodyInterface* Body::bodyInterface()
 
     return &interface;
 }
-
+#endif
 
 template<> double Body::info(const std::string& key) const
 {

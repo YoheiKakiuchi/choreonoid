@@ -3,7 +3,7 @@
 #include <QEvent>
 #include <QCoreApplication>
 #include <QThread>
-#include <QSemaphore>
+//#include <QSemaphore>
 #include <mutex>
 #include <memory>
 
@@ -35,7 +35,9 @@ inline int toQtPriority(int priority) {
 class SyncInfo
 {
 public:
+#if 0
     QSemaphore semaphore;
+#endif
     bool completed;
     SyncInfo() {
         completed = false;
@@ -65,7 +67,9 @@ public:
     { }
     ~CallEvent() {
         if(syncInfo){
+#if 0
             syncInfo->semaphore.release(); // wake up the caller process
+#endif
         }
     }
     std::function<void(void)> func;
@@ -149,7 +153,9 @@ bool cnoid::callSynchronously(const std::function<void()>& func, int priority)
         auto syncInfo = std::make_shared<SyncInfo>();
         QCoreApplication::postEvent(
             &callEventHandler, new CallEvent(func, syncInfo), toQtPriority(priority));
+#if 0
         syncInfo->semaphore.acquire(); // wait for finish
+#endif
         return syncInfo->completed;
     }
 }

@@ -1,9 +1,3 @@
-if(${EMSCRIPTEN})
-  cmake_minimum_required(VERSION 3.15)
-  project(emscripten_build)
-  include(CMakeLists.em.txt)
-else()
-
 set(sources
   App.cpp
   MenuManager.cpp
@@ -71,8 +65,6 @@ set(sources
   SpinBox.cpp
   DoubleSpinBox.cpp
   LengthSpinBox.cpp
-  LengthUnitLabel.cpp
-  AngleUnitLabel.cpp
   FloatingNumberBox.cpp
   ScrollBar.cpp
   Slider.cpp
@@ -110,7 +102,7 @@ set(sources
   ReferencedObjectSeqItem.cpp
   CoordinateFrameListItem.cpp
   CoordinateFrameItem.cpp
-  ExtCommandItem.cpp
+# ExtCommandItem.cpp
   AbstractTextItem.cpp
   ScriptItem.cpp
   TimeSyncItemEngine.cpp
@@ -140,7 +132,6 @@ set(sources
   SceneGeometryMeasurementTracker.cpp
   GeneralSceneFileImporterBase.cpp
   GeneralSceneFileLoadDialog.cpp
-  RawSceneItem.cpp
   CameraItem.cpp
   CameraConfigDialog.cpp
   LightingItem.cpp
@@ -166,13 +157,13 @@ set(sources
   QtSvgUtil.cpp
   )
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  set(sources ${sources} JoystickCaptureLinux.cpp)
-elseif(WIN32)
-  #set(sources ${sources} JoystickCaptureWindows.cpp)
-elseif(APPLE)
-  #set(sources ${sources} JoystickCaptureOSX.cpp)
-endif()
+#if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+#  set(sources ${sources} JoystickCaptureLinux.cpp)
+#elseif(WIN32)
+#  #set(sources ${sources} JoystickCaptureWindows.cpp)
+#elseif(APPLE)
+#  #set(sources ${sources} JoystickCaptureOSX.cpp)
+#endif()
 
 set(headers
   App.h
@@ -186,8 +177,6 @@ set(headers
   SpinBox.h
   DoubleSpinBox.h
   LengthSpinBox.h
-  LengthUnitLabel.h
-  AngleUnitLabel.h
   FloatingNumberBox.h
   ScrollBar.h
   Slider.h
@@ -236,7 +225,6 @@ set(headers
   ItemTreeView.h
   ItemTreePanelDialog.h
   ItemPropertyWidget.h
-  ItemPropertyView.h
   ItemList.h
   Item.h
   ItemAddon.h
@@ -266,7 +254,7 @@ set(headers
   ReferencedObjectSeqItem.h
   CoordinateFrameListItem.h
   CoordinateFrameItem.h
-  ExtCommandItem.h
+# ExtCommandItem.h
   AbstractTextItem.h
   ScriptItem.h
   ItemPath.h
@@ -303,7 +291,6 @@ set(headers
   SceneItemFileIO.h
   GeneralSceneFileImporterBase.h
   GeneralSceneFileLoadDialog.h
-  RawSceneItem.h
   CameraItem.h
   CameraConfigDialog.h
   LightingItem.h
@@ -348,35 +335,40 @@ set(qtheaders
   SocketNotifier.h
   StringListComboBox.h
   TextEdit.h
-  )
+)
 
-choreonoid_qt_add_resources(RC_SRCS Base.qrc)
-choreonoid_qt_wrap_cpp(qtsources ${qtheaders})
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets Svg)
+#choreonoid_qt_add_resources(RC_SRCS Base.qrc)
+#choreonoid_qt_wrap_cpp(qtsources ${qtheaders})
+qt6_add_resources(RC_SRCS Base.qrc)
+qt6_wrap_cpp(qtsources ${qtheaders})
 
 set(sources ${sources} ${qtsources})
 
-make_gettext_mofiles(${target} mofiles)
+#make_gettext_mofiles(${target} mofiles)
 
 set(libraries
-  PUBLIC CnoidUtil ${CHOREONOID_QT_LIBRARIES}
-  PRIVATE CnoidGLSceneRenderer ${libzip_LIBRARIES})
+  PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg
+  )
+  # PRIVATE CnoidGLSceneRenderer CnoidBody CnoidUtil ${libzip_LIBRARIES})
 
-if(UNIX)
-  set(libraries ${libraries} PRIVATE X11 Xfixes)
-endif()
+#if(UNIX)
+#  set(libraries ${libraries} PRIVATE X11 Xfixes)
+#endif()
 
-choreonoid_add_library(${target} SHARED ${sources} ${mofiles} ${RC_SRCS} HEADERS ${headers})
+#choreonoid_add_library(${target} SHARED ${sources} ${mofiles} ${RC_SRCS} HEADERS ${headers})
+add_library(${target} ${sources} ${RC_SRCS})
 target_compile_definitions(${target} PUBLIC ${CHOREONOID_QT_COMPILE_DEFINITIONS})
+#target_include_directories(${target} PUBLIC /opt/emtest/include/choreonoid-2.3 /usr/include/eigen3 /home/irsl/temp/emscripten_gl/cnoid_rendering/choreonoid/thirdparty/CLI11)
+#target_link_directories(${target} PUBLIC /opt/emtest/lib)
 target_link_libraries(${target} ${libraries})
 
-file(MAKE_DIRECTORY ${CNOID_BINARY_SHARE_DIR}/icon)
-file(COPY icon/choreonoid.svg DESTINATION ${CNOID_BINARY_SHARE_DIR}/icon)
-install(FILES icon/choreonoid.svg DESTINATION ${CNOID_SHARE_SUBDIR}/icon)
+#file(MAKE_DIRECTORY ${CNOID_BINARY_SHARE_DIR}/icon)
+#file(COPY icon/choreonoid.svg DESTINATION ${CNOID_BINARY_SHARE_DIR}/icon)
+#install(FILES icon/choreonoid.svg DESTINATION ${CNOID_SHARE_SUBDIR}/icon)
 
-if(ENABLE_PYTHON)
-  add_subdirectory(pybind11)
-endif()
-
-add_subdirectory(lua)
-
-endif(${EMSCRIPTEN})
+#if(ENABLE_PYTHON)
+#  add_subdirectory(pybind11)
+#endif()
+#
+#add_subdirectory(lua)

@@ -1,15 +1,17 @@
 #include "GLSceneRenderer.h"
-#include "GL1SceneRenderer.h"
+//#include "GL1SceneRenderer.h"
 #include "GLSLSceneRenderer.h"
 #include <cnoid/SceneDrawables>
 #include <cnoid/SceneCameras>
 #include <cnoid/NullOut>
 
+#include <QtResource>
+
 using namespace std;
 using namespace cnoid;
 
 namespace {
-
+//inline void initMyResource() { Q_INIT_RESOURCE(GLSceneRenderer); }
 int rendererType_ = GLSceneRenderer::GLSL_RENDERER;
 bool isStandardDepthBufferForced_ = false;
 
@@ -53,7 +55,8 @@ int GLSceneRenderer::rendererType()
 GLSceneRenderer* GLSceneRenderer::create(SgGroup* root)
 {
     if(rendererType_ == GL1_RENDERER){
-        return new GL1SceneRenderer(root);
+        //return new GL1SceneRenderer(root);
+        return new GLSLSceneRenderer(root);
     } else {
         return new GLSLSceneRenderer(root);
     }

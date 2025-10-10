@@ -244,7 +244,11 @@ typedef std::vector<int> SgIndexArray;
 
 class CNOID_EXPORT SgMeshBase : public SgObject
 {
+#if defined(EMSCRIPTEN)
+public:
+#else
 protected:
+#endif
     SgMeshBase();
     SgMeshBase(const SgMeshBase& org, CloneMap* cloneMap = nullptr);
     ~SgMeshBase();

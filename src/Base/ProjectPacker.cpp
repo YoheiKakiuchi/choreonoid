@@ -379,7 +379,7 @@ void ProjectPacker::Impl::checkFileDependency(Item* item)
         }
         if(!checkIfPathInReferenceDirectory(ufPath)){
             PathNode* node = &rootNode;
-            for(auto& element : ufPath){
+            for(const auto& element : ufPath){
                 auto key = element.string();
 #ifdef _WIN32
                 std::transform(key.begin(), key.end(), key.begin(), ::tolower);

@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <iostream>
 #include "gettext.h"
+#include <QOpenGLExtraFunctions>
 
 using namespace std;
 using namespace cnoid;
@@ -70,6 +71,9 @@ struct LockVertexArrayAPI
 class GLResource : public Referenced
 {
 public:
+    // Added: pointer to renderer Func (inherits QOpenGLExtraFunctions)
+    QOpenGLExtraFunctions* func;
+    GLResource(QOpenGLExtraFunctions* func) : func(func) {}
     virtual void discard() = 0;
 };
 
@@ -104,10 +108,11 @@ public:
     VertexResource(const VertexResource&) = delete;
     VertexResource& operator=(const VertexResource&) = delete;
 
-    VertexResource(SgObject* obj)
+    VertexResource(QOpenGLExtraFunctions* func, SgObject* obj)
+        : GLResource(func)
     {
         clearHandles();
-        glGenVertexArrays(1, &vao);
+        func->glGenVertexArrays(1, &vao);
         pLocalTransform = nullptr;
 
         connection =
@@ -137,14 +142,14 @@ public:
 
     GLuint newBuffer(){
         GLuint buffer;
-        glGenBuffers(1, &buffer);
+        func->glGenBuffers(1, &buffer);
         vbos[numBuffers++] = buffer;
         return buffer;
     }
 
     void deleteBuffers(){
         if(numBuffers > 0){
-            glDeleteBuffers(numBuffers, vbos);
+            func->glDeleteBuffers(numBuffers, vbos);
             for(int i=0; i < numBuffers; ++i){
                 vbos[i] = 0;
             }
@@ -159,7 +164,7 @@ public:
     ~VertexResource() {
         deleteBuffers();
         if(vao){
-            glDeleteVertexArrays(1, &vao);
+            func->glDeleteVertexArrays(1, &vao);
         }
     }
 };
@@ -178,7 +183,8 @@ public:
     int numComponents;
     ScopedConnection connection;
         
-    TextureResource(SgImage* image)
+    TextureResource(QOpenGLExtraFunctions* func, SgImage* image)
+        : GLResource(func)
     {
         isLoaded = false;
         isImageUpdateNeeded = false;
@@ -202,11 +208,11 @@ public:
     void clear() {
         if(isLoaded){
             if(textureId){
-                glDeleteTextures(1, &textureId);
+                func->glDeleteTextures(1, &textureId);
                 textureId = 0;
             }
             if(samplerId){
-                glDeleteSamplers(1, &samplerId);
+                func->glDeleteSamplers(1, &samplerId);
                 samplerId = 0;
             }
             isLoaded = false;
@@ -232,10 +238,11 @@ public:
     TextResource(const TextResource&) = delete;
     TextResource& operator=(const TextResource&) = delete;
 
-    TextResource(SgText* text)
+    TextResource(QOpenGLExtraFunctions* func, SgText* text)
+        : GLResource(func)
     {
         clearHandles();
-        glGenVertexArrays(1, &vao);
+        func->glGenVertexArrays(1, &vao);
         connection =
             text->sigUpdated().connect(
                 [this](const SgUpdate&){ isTextUpdateNeeded = true; });
@@ -250,10 +257,10 @@ public:
 
     ~TextResource(){
         if(vbo){
-            glDeleteBuffers(1, &vbo);
+            func->glDeleteBuffers(1, &vbo);
         }
         if(vao){
-            glDeleteVertexArrays(1, &vao);
+            func->glDeleteVertexArrays(1, &vao);
         }
     }
 
@@ -297,6 +304,7 @@ public:
 namespace cnoid {
 
 class GLSLSceneRenderer::Impl
+    : public QOpenGLExtraFunctions   // Added inheritance
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -480,6 +488,8 @@ public:
     string glVendorString;
     string glRendererString;
 
+    bool glFunctionsInitialized; // Added: tracks QOpenGLExtraFunctions initialization
+
     Impl(GLSLSceneRenderer* self);
     ~Impl();
     void initialize();
@@ -585,7 +595,6 @@ public:
 
 }
 
-
 GLSLSceneRenderer::GLSLSceneRenderer(SgGroup* sceneRoot)
     : GLSceneRenderer(sceneRoot)
 {
@@ -597,7 +606,7 @@ GLSLSceneRenderer::GLSLSceneRenderer(SgGroup* sceneRoot)
 GLSLSceneRenderer::Impl::Impl(GLSLSceneRenderer* self)
     : self(self)
 {
-
+    glFunctionsInitialized = false; // initialize flag
 }
 
 
@@ -723,7 +732,9 @@ void GLSLSceneRenderer::Impl::initialize()
     isShadowCastingAvailable = true;
     isWorldLightShadowEnabled = false;
     isRenderingShadowMap = false;
+    isLightweightRenderingBeingProcessed = false;
     isLowMemoryConsumptionMode = false;
+    isLowMemoryConsumptionRenderingBeingProcessed = false;
     isBoundingBoxRenderingMode = false;
     isBoundingBoxRenderingForLightweightRenderingGroupEnabled = false;
 
@@ -933,15 +944,15 @@ void GLSLSceneRenderer::Impl::clearGL(bool isGLContextActive, bool isCalledFromC
         currentLightingProgram = nullptr;
         currentMaterialLightingProgram = nullptr;
 
-        nolightingProgram.reset(new NolightingProgram);
-        solidColorProgram.reset(new SolidColorProgram);
-        solidColorExProgram.reset(new SolidColorExProgram);
-        solidPointProgram.reset(new SolidPointProgram);
-        thickLineProgram.reset(new ThickLineProgram);
-        textProgram.reset(new TextProgram);
-        outlineProgram.reset(new OutlineProgram);
-        minimumLightingProgram.reset(new MinimumLightingProgram);
-        fullLightingProgram.reset(new FullLightingProgram);
+        nolightingProgram.reset(new NolightingProgram(this));
+        solidColorProgram.reset(new SolidColorProgram(this));
+        solidColorExProgram.reset(new SolidColorExProgram(this));
+        solidPointProgram.reset(new SolidPointProgram(this));
+        thickLineProgram.reset(new ThickLineProgram(this));
+        textProgram.reset(new TextProgram(this));
+        outlineProgram.reset(new OutlineProgram(this));
+        minimumLightingProgram.reset(new MinimumLightingProgram(this));
+        fullLightingProgram.reset(new FullLightingProgram(this));
 
         needToUpdateDepthTexture = true;
 
@@ -987,6 +998,7 @@ bool GLSLSceneRenderer::initializeGL(GLADloadfunc getProcAddress)
 
 bool GLSLSceneRenderer::Impl::initializeGL(GLADloadfunc getProcAddress)
 {
+#if 0 //EM
     if(glVersion == 0){
         glVersion = cnoidLoadGL(getProcAddress);
         if(glVersion == 0){
@@ -998,6 +1010,22 @@ bool GLSLSceneRenderer::Impl::initializeGL(GLADloadfunc getProcAddress)
     glslVersionString = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
     glVendorString = (const char*)glGetString(GL_VENDOR);
     glRendererString = (const char*)glGetString(GL_RENDERER);
+#else
+    // Removed custom loader (ogl_LoadFunctions) and replaced with Qt functions init
+    if(!glFunctionsInitialized){
+        initializeOpenGLFunctions();
+        glFunctionsInitialized = true;
+    }
+
+    // Query version info via the (now initialized) Qt function table
+    GLint major, minor;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
+    glVersionString  = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+    glVendorString   = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+    glRendererString = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+    glslVersionString= reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+#endif
 
     os() << formatR(_("OpenGL {0}.{1} (GLSL {2}) is available for {3}.\n"),
                     GLAD_VERSION_MAJOR(glVersion), GLAD_VERSION_MINOR(glVersion),
@@ -1071,28 +1099,47 @@ void GLSLSceneRenderer::Impl::checkGPU()
 
 bool GLSLSceneRenderer::Impl::initializeGLForRendering()
 {
-    isGLCleared = false;
+    if(!glFunctionsInitialized){
+        // Safeguard (in case initializeGL was bypassed)
+        initializeOpenGLFunctions();
+        glFunctionsInitialized = true;
+    }
 
+    isGLCleared = false;
     try {
+        qDebug() << "initializeGLForRendering(0s)";
         nolightingProgram->initialize();
+        qDebug() << "  (0s) 01";
         solidColorProgram->initialize();
+        qDebug() << "  (0s) 02";
         solidColorExProgram->initialize();
-        solidPointProgram->initialize();
+        qDebug() << "  (0s) 03";
+        solidPointProgram->initialize(); // <-
+        qDebug() << "  (0s) 04";
         thickLineProgram->initialize();
+        qDebug() << "  (0s) 05";
         textProgram->setTextureUnit(ImageTextureUnit);
+        qDebug() << "  (0s) 06";
         textProgram->initialize();
+        qDebug() << "  (0s) 07";
         outlineProgram->initialize();
+        qDebug() << "  (0s) 08";
         minimumLightingProgram->initialize();
+        qDebug() << "  (0s) 09";
         fullLightingProgram->setColorTextureUnit(ImageTextureUnit);
+        qDebug() << "  (0s) 10";
         fullLightingProgram->setShadowMapTextureTopIndex(ShadowMapTextureUnit);
+        qDebug() << "  (0s) 11";
         fullLightingProgram->initialize();
+        qDebug() << "initializeGLForRendering(0e)";
     }
     catch(std::runtime_error& error){
-        os() << error.what() << endl;
-        cerr << error.what() << endl;
+        os() << error.what() << std::endl;
+        std::cerr << error.what() << std::endl;
         return false;
     }
 
+    qDebug() << "initializeGLForRendering(1s)";
     glEnable(GL_DEPTH_TEST);
     // Automatic reversed depth buffer detection
     if(!GLSceneRenderer::isStandardDepthBufferForced() && glad_glClipControl){
@@ -1119,6 +1166,7 @@ bool GLSLSceneRenderer::Impl::initializeGLForRendering()
     if(msaaSamples > 1){
         glEnable(GL_MULTISAMPLE);
     }
+    qDebug() << "initializeGLForRendering(1e)";
 
 #ifdef CNOID_ENABLE_FREE_TYPE
 # ifdef _WIN32
@@ -1168,6 +1216,7 @@ void GLSLSceneRenderer::setDefaultFramebufferObject(unsigned int id)
 
 void GLSLSceneRenderer::Impl::initializeDepthTexture()
 {
+#if 0 //EM
     // Query GPU's maximum supported MSAA samples and clamp if necessary
     if(msaaSamples > 1){
         GLint maxSamples = 0;
@@ -1182,6 +1231,19 @@ void GLSLSceneRenderer::Impl::initializeDepthTexture()
             os() << _("Warning: GPU does not support MSAA. Disabling MSAA.") << endl;
             msaaSamples = 0;
         }
+#else
+    if(!depthTexture){
+        glGenTextures(1, &depthTexture);
+        glActiveTexture(GL_TEXTURE0 + DepthTextureUnit);
+        this->glBindTexture(GL_TEXTURE_2D, depthTexture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    } else {
+        glActiveTexture(GL_TEXTURE0 + DepthTextureUnit);
+        this->glBindTexture(GL_TEXTURE_2D, depthTexture);
+#endif
     }
 
     // Use floating-point depth for reversed depth buffer to maximize precision benefit
@@ -1276,28 +1338,22 @@ void GLSLSceneRenderer::Impl::initializeDepthTexture()
 
 void GLSLSceneRenderer::setViewport(int x, int y, int width, int height)
 {
-    glViewport(x, y, width, height);
+    impl->glViewport(x, y, width, height); // changed
     updateViewportInformation(x, y, width, height);
 }
 
 
 void GLSLSceneRenderer::flushGL()
 {
-    glFlush();
-
-    /**
-       This is necessary when the rendering is done for an internal frame buffer object
-       and the rendererd image data is retrieved from it because another frame buffer object
-       may be bounded in the renderer.
-    */
-    glBindFramebuffer(GL_FRAMEBUFFER, impl->defaultFBO);
+    impl->glFlush(); // changed
+    impl->glBindFramebuffer(GL_FRAMEBUFFER, impl->defaultFBO); // changed
 }
 
 
 void GLSLSceneRenderer::updateViewportInformation()
 {
     int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    impl->glGetIntegerv(GL_VIEWPORT, viewport); // changed
     updateViewportInformation(viewport[0], viewport[1], viewport[2], viewport[3]);
 }
 
@@ -1515,7 +1571,7 @@ void GLSLSceneRenderer::Impl::doRender()
             renderFog(currentLightingProgram);
         }
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // TODO FIX
 
         renderChildNodes(self->sceneRoot());
         
@@ -1530,7 +1586,7 @@ void GLSLSceneRenderer::Impl::doRender()
             doVertexRendering();
         }
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // TODO FIX
         if(!transparentRenderingQueue.empty()){
             renderTransparentObjects();
         }
@@ -1680,7 +1736,7 @@ bool GLSLSceneRenderer::Impl::doPick(int x, int y)
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);  // TODO FIX
 
     if(auto camera = self->currentCamera()){
 
@@ -1755,16 +1811,16 @@ bool GLSLSceneRenderer::getPickingImage(Image& out_image)
         return false;
     }
     
-    glBindFramebuffer(GL_FRAMEBUFFER, impl->fboForPicking);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, impl->fboForPicking);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    impl->glBindFramebuffer(GL_FRAMEBUFFER, impl->fboForPicking);          // changed
+    impl->glBindFramebuffer(GL_READ_FRAMEBUFFER, impl->fboForPicking);     // changed
+    impl->glReadBuffer(GL_COLOR_ATTACHMENT0);                              // changed
     int w = impl->pickingImageWidth;
     int h = impl->pickingImageHeight;
     out_image.setSize(w, h, 4);
-    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, out_image.pixels());
+    impl->glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, out_image.pixels()); // changed
     out_image.applyVerticalFlip();
-    glBindFramebuffer(GL_FRAMEBUFFER, impl->defaultFBO);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, impl->defaultFBO);
+    impl->glBindFramebuffer(GL_FRAMEBUFFER, impl->defaultFBO);             // changed
+    impl->glBindFramebuffer(GL_READ_FRAMEBUFFER, impl->defaultFBO);        // changed
 
     return true;
 }
@@ -2080,7 +2136,7 @@ void GLSLSceneRenderer::Impl::renderFog(LightingProgram* program)
 
 void GLSLSceneRenderer::Impl::doPureWireframeRendering()
 {
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // TODO FIX
     
     for(auto& info : pureWireframeRenderingNodes){
         auto style = static_cast<SgPolygonDrawStyle*>(info.node.get());
@@ -2532,7 +2588,7 @@ ResourceType* GLSLSceneRenderer::Impl::getOrCreateGLResource(ObjectType* obj)
     ResourceType* resource;
     auto p = currentResourceMap->find(obj);
     if(p == currentResourceMap->end()){
-        resource = new ResourceType(obj);
+        resource = new ResourceType(this, obj); // pass Impl*
         p = currentResourceMap->insert(GLResourceMap::value_type(obj, resource)).first;
     } else {
         resource = static_cast<ResourceType*>(p->second.get());
@@ -2791,6 +2847,7 @@ bool GLSLSceneRenderer::Impl::loadTextureImage(TextureResource* resource, const 
     if(resource->isLoaded && resource->isSameSizeAs(image)){
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, format, GL_UNSIGNED_BYTE, image.pixels());
     } else {
+#if 0 //EM
         // NPOT (Non-Power-Of-Two) textures are fully supported in OpenGL 3.3+
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, image.pixels());
         if(format == GL_RED){
@@ -2805,6 +2862,23 @@ bool GLSLSceneRenderer::Impl::loadTextureImage(TextureResource* resource, const 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_GREEN);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_BLUE);
+#else
+        double w2 = log2(width);
+        double h2 = log2(height);
+        double pw = ceil(w2);
+        double ph = ceil(h2);
+        if((pw - w2 == 0.0) && (ph - h2 == 0.0)){
+            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, image.pixels());
+        } else{
+            GLsizei potWidth = pow(2.0, pw);
+            GLsizei potHeight = pow(2.0, ph);
+            scaledImageBuf.resize(potWidth * potHeight * image.numComponents());
+#if 0
+            gluScaleImage(format, width, height, GL_UNSIGNED_BYTE, image.pixels(),
+                          potWidth, potHeight, GL_UNSIGNED_BYTE, &scaledImageBuf.front());
+#endif
+            glTexImage2D(GL_TEXTURE_2D, 0, format, potWidth, potHeight, 0, format, GL_UNSIGNED_BYTE, &scaledImageBuf.front());
+#endif
         }
         resource->isLoaded = true;
         resource->width = width;
@@ -3399,7 +3473,7 @@ void GLSLSceneRenderer::Impl::renderPlotMain
  const std::function<bool()>& setupShaderProgram)
 {
     bool pushed = setupShaderProgram();
-    
+
     if(isRenderingPickingImage){
         setPickColor(pickIndex);
     } else {
@@ -3782,7 +3856,7 @@ void GLSLSceneRenderer::Impl::renderLightweightRenderingGroup(SgLightweightRende
 namespace {
 
 ResourceRefreshGroupResource::ResourceRefreshGroupResource(GLSLSceneRenderer::Impl* impl, SgGroup* group)
-    : impl(impl)
+    : GLResource(impl), impl(impl)
 {
     subTreePreservationGroup = new SgGroup;
     group->copyChildrenTo(subTreePreservationGroup);

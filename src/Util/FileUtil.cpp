@@ -199,7 +199,7 @@ bool checkIfSubFilePath(const std::filesystem::path& path, const std::filesystem
     bool result = false;
     if(auto relPath = getRelativePath(path, base)){
         result = true;
-        for(auto& element : *relPath){
+        for(const auto& element : *relPath) {
             if(element.string() == ".."){
                 result = false;
                 break;
