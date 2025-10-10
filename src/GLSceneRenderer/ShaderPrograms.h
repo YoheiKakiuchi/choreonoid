@@ -5,6 +5,7 @@
 #include <cnoid/EigenTypes>
 #include <initializer_list>
 #include "exportdecl.h"
+#include <QOpenGLExtraFunctions>
 
 namespace cnoid {
 
@@ -51,22 +52,53 @@ public:
     bool hasCapability(int capability) const { return capabilities_ & capability; }
 
 protected:
-    ShaderProgram() = default;
+    ShaderProgram() = delete;
 
     struct ShaderSource {
         const char* filename;
         int shaderType;
     };
-    ShaderProgram(std::initializer_list<ShaderSource> sources);
+    ShaderProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f);
     
     void setCapability(int capability) { capabilities_ |= capability; }
 
+    QOpenGLExtraFunctions* funcs() const { return glFuncs; }
+    void glUniformMatrix4fv(GLint l, GLsizei c, GLboolean t, const GLfloat* v){ glFuncs->glUniformMatrix4fv(l,c,t,v); }
+    void glUniformMatrix3fv(GLint l, GLsizei c, GLboolean t, const GLfloat* v){ glFuncs->glUniformMatrix3fv(l,c,t,v); }
+    void glUniform3fv(GLint l, GLsizei c, const GLfloat* v){ glFuncs->glUniform3fv(l,c,v); }
+    void glUniform4fv(GLint l, GLsizei c, const GLfloat* v){ glFuncs->glUniform4fv(l,c,v); }
+    void glUniform1f(GLint l, GLfloat v0){ glFuncs->glUniform1f(l,v0); }
+    void glUniform1i(GLint l, GLint v0){ glFuncs->glUniform1i(l,v0); }
+    void glDisable(GLenum cap){ glFuncs->glDisable(cap); }
+    void glEnable(GLenum cap){ glFuncs->glEnable(cap); }
+    void glDepthMask(GLboolean f){ glFuncs->glDepthMask(f); }
+    void glCullFace(GLenum m){ glFuncs->glCullFace(m); }
+    void glActiveTexture(GLenum t){ glFuncs->glActiveTexture(t); }
+    void glBindFramebuffer(GLenum t, GLuint id){ glFuncs->glBindFramebuffer(t,id); }
+    void glClear(GLbitfield m){ glFuncs->glClear(m); }
+    void glBindTexture(GLenum t, GLuint id){ glFuncs->glBindTexture(t,id); }
+    void glTexParameteri(GLenum t, GLenum p, GLint v){ glFuncs->glTexParameteri(t,p,v); }
+    void glTexParameterfv(GLenum t, GLenum p, const GLfloat* v){ glFuncs->glTexParameterfv(t,p,v); }
+    void glTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei w, GLsizei h,
+                      GLint border, GLenum format, GLenum type, const void* data){
+        glFuncs->glTexImage2D(target,level,internalFormat,w,h,border,format,type,data);
+    }
+    void glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level){
+        glFuncs->glFramebufferTexture2D(target,attachment,textarget,texture,level);
+    }
+    GLenum glCheckFramebufferStatus(GLenum target){ return glFuncs->glCheckFramebufferStatus(target); }
+    void glGenFramebuffers(GLsizei n, GLuint* ids){ glFuncs->glGenFramebuffers(n,ids); }
+    void glDeleteFramebuffers(GLsizei n, const GLuint* ids){ glFuncs->glDeleteFramebuffers(n,ids); }
+    void glGenTextures(GLsizei n, GLuint* ids){ glFuncs->glGenTextures(n,ids); }
+    void glDeleteTextures(GLsizei n, const GLuint* ids){ glFuncs->glDeleteTextures(n,ids); }
+    //glUniform2f()
+    
+    QOpenGLExtraFunctions* glFuncs;
 private:
     GLSLProgram* glslProgram_;
     int capabilities_;
-
     class Impl;
-    Impl* impl;
+    Impl *impl;
 };
 
 
@@ -75,13 +107,13 @@ class CNOID_EXPORT NolightingProgram : public ShaderProgram
     NolightingProgram(const NolightingProgram&) = delete;
 
 public:
-    NolightingProgram();
+    NolightingProgram(QOpenGLExtraFunctions* f);
     ~NolightingProgram();
     virtual void initialize() override;
     virtual void setTransform(const Matrix4& PV, const Isometry3& V, const Affine3& M, const Matrix4* L) override;
 
 protected:
-    NolightingProgram(std::initializer_list<ShaderSource> sources);
+    NolightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f);
 
 private:
     class Impl;
@@ -94,7 +126,7 @@ class CNOID_EXPORT SolidColorProgram : public NolightingProgram
     SolidColorProgram(const SolidColorProgram&) = delete;
 
 public:
-    SolidColorProgram();
+    SolidColorProgram(QOpenGLExtraFunctions* f);
     ~SolidColorProgram();
 
     virtual void initialize() override;
@@ -107,7 +139,7 @@ public:
     void resetColor(const Vector3f& color);
 
 protected:
-    SolidColorProgram(std::initializer_list<ShaderSource> sources);
+    SolidColorProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f);
 
 private:
     class Impl;
@@ -120,7 +152,7 @@ class CNOID_EXPORT SolidColorExProgram : public SolidColorProgram
     SolidColorExProgram(const SolidColorExProgram&) = delete;
 
 public:
-    SolidColorExProgram();
+    SolidColorExProgram(QOpenGLExtraFunctions* f);
     ~SolidColorExProgram();
         
     virtual void initialize() override;
@@ -130,7 +162,7 @@ public:
     virtual void setVertexColorEnabled(bool on) override;
 
 protected:
-    SolidColorExProgram(std::initializer_list<ShaderSource> sources);
+    SolidColorExProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f);
 
 private:
     class Impl;
@@ -143,7 +175,7 @@ class CNOID_EXPORT ThickLineProgram : public SolidColorExProgram
     ThickLineProgram(const ThickLineProgram&) = delete;
 
 public:
-    ThickLineProgram();
+    ThickLineProgram(QOpenGLExtraFunctions* f);
     ~ThickLineProgram();
     
     virtual void initialize() override;
@@ -163,7 +195,7 @@ class CNOID_EXPORT SolidPointProgram : public SolidColorProgram
     SolidPointProgram(const SolidPointProgram&) = delete;
 
 public:
-    SolidPointProgram();
+    SolidPointProgram(QOpenGLExtraFunctions* f);
     ~SolidPointProgram();
 
     virtual void initialize() override;
@@ -185,7 +217,7 @@ class CNOID_EXPORT TextProgram : public NolightingProgram
     TextProgram(const TextProgram&) = delete;
 
 public:
-    TextProgram();
+    TextProgram(QOpenGLExtraFunctions* f);
     virtual void initialize() override;
     void setColor(const Vector3f& color);
     void setTextureUnit(int textureUnit);
@@ -206,7 +238,7 @@ class CNOID_EXPORT OutlineProgram : public SolidColorProgram
     OutlineProgram(const OutlineProgram&) = delete;
     
 public:
-    OutlineProgram();
+    OutlineProgram(QOpenGLExtraFunctions* f);
     virtual void initialize() override;
     virtual void setTransform(const Matrix4& PV, const Isometry3& V, const Affine3& M, const Matrix4* L) override;
     void setLineWidth(float width);
@@ -229,7 +261,7 @@ public:
     virtual void setFog(const SgFog* fog);
 
 protected:
-    LightingProgram(std::initializer_list<ShaderSource> sources);
+    LightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f);
 };
 
 
@@ -238,7 +270,7 @@ class CNOID_EXPORT MinimumLightingProgram : public LightingProgram
     MinimumLightingProgram(const MinimumLightingProgram&) = delete;
 
 public:
-    MinimumLightingProgram();
+    MinimumLightingProgram(QOpenGLExtraFunctions* f);
     ~MinimumLightingProgram();
 
     virtual void initialize() override;
@@ -269,7 +301,7 @@ public:
     virtual void setFog(const SgFog* fog) override;
 
 protected:
-    BasicLightingProgram(std::initializer_list<ShaderSource> sources);
+    BasicLightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f);
     ~BasicLightingProgram();
     
 private:
@@ -283,7 +315,7 @@ class MaterialLightingProgram : public BasicLightingProgram
     MaterialLightingProgram(const MaterialLightingProgram&) = delete;
 
 protected:
-    MaterialLightingProgram(std::initializer_list<ShaderSource> sources);
+    MaterialLightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f);
     ~MaterialLightingProgram();
     
 public:
@@ -309,8 +341,8 @@ class FullLightingProgram : public MaterialLightingProgram
     FullLightingProgram(const FullLightingProgram&) = delete;
 
 public:
-    FullLightingProgram();
-    FullLightingProgram(std::initializer_list<ShaderSource> sources);
+    FullLightingProgram(QOpenGLExtraFunctions* f);
+    FullLightingProgram(std::initializer_list<ShaderSource> sources, QOpenGLExtraFunctions* f);
     ~FullLightingProgram();
 
     void setDefaultFramebufferObject(GLuint id);
