@@ -1,5 +1,3 @@
-project(emscripten_build)
-
 set(sources
   GLSceneRenderer.cpp
   #GL1SceneRenderer.cpp
