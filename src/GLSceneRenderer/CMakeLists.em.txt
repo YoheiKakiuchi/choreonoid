@@ -2,19 +2,19 @@ project(emscripten_build)
 
 set(sources
   GLSceneRenderer.cpp
-  GL1SceneRenderer.cpp
+  #GL1SceneRenderer.cpp
   GLSLProgram.cpp
   ShaderPrograms.cpp
   GLSLSceneRenderer.cpp
   #gl_core_3_3.c
   #gl_core_4_0.c
   #gl_core_4_4.c
-  gl_1_5.c
+  #gl_1_5.c
   )
 
 set(headers
   GLSceneRenderer.h
-  GL1SceneRenderer.h
+  #GL1SceneRenderer.h
   GLSLProgram.h
   ShaderPrograms.h
   GLSLSceneRenderer.h
@@ -31,7 +31,7 @@ qt6_add_resources(RC_SRCS GLSceneRenderer.qrc)
 
 message("CNOID_QT : ${CHOREONOID_QT_CORE_LIBRARY}")
 
-set(libraries PUBLIC CnoidUtil PRIVATE ${CHOREONOID_QT_CORE_LIBRARY} Qt6::Gui)
+set(libraries PUBLIC CnoidUtil PRIVATE ${CHOREONOID_QT_CORE_LIBRARY} Qt6::Core Qt6::Gui)
 
 #if(MSVC)
 #  set(libraries ${libraries} PUBLIC general glu32 opengl32)

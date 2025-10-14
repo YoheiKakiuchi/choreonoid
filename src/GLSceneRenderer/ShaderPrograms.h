@@ -1,12 +1,14 @@
 #ifndef CNOID_BASE_SHADER_PROGRAMS_H
 #define CNOID_BASE_SHADER_PROGRAMS_H
 
-#include "glcore.h"
+//#include "glcore.h"
 #include <cnoid/EigenTypes>
 #include <initializer_list>
 #include "exportdecl.h"
 #include <QOpenGLExtraFunctions>
-
+//
+//#include <QOpenGLTexture>
+//#include <QOpenGLShader>
 namespace cnoid {
 
 class GLSLProgram;

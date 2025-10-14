@@ -8,6 +8,11 @@
 #include <cnoid/Format>
 #include "gettext.h"
 
+// HOTFIX
+#define GL_GEOMETRY_SHADER 0x8DD9
+#define GL_CLAMP_TO_BORDER 0x812D
+#define GL_TEXTURE_BORDER_COLOR 0x1004
+
 using namespace std;
 using namespace cnoid;
 
