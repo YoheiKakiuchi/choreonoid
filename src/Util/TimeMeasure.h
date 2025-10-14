@@ -10,7 +10,10 @@
 #define USE_GETTIME
 #endif
 #endif
-
+#if defined(EMSCRIPTEN)
+#include <sys/time.h>
+#define USE_GETTIME
+#endif
 namespace cnoid {
 
 class TimeMeasure
