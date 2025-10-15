@@ -48,9 +48,11 @@ void GLSLProgram::release()
 
 void GLSLProgram::loadShader(const char* filename, int shaderType)
 {
+    qDebug() << "f : " << filename;
     QFile file(filename);
 
     if(!file.exists()){
+        qDebug() << "not found f: " << filename;
         throw std::runtime_error(formatR(_("Shader \"{}\" is not found."), filename));
     }
     
@@ -58,15 +60,18 @@ void GLSLProgram::loadShader(const char* filename, int shaderType)
     const QByteArray data = file.readAll();
     const GLchar* codes[] = { data.data() };
     const GLint codeSizes[] = { static_cast<int>(data.size()) };
-
+    qDebug() << "c0 : " << codeSizes[0];
     GLuint shaderHandle = funcs->glCreateShader(shaderType);
-    
+    qDebug() << "c1 : " << shaderHandle;
     funcs->glShaderSource(shaderHandle, 1, codes, codeSizes);
+    qDebug() << "c2";
     funcs->glCompileShader(shaderHandle);
 
+    qDebug() << "c3";
     GLint result;
     funcs->glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &result);
     if(result == GL_FALSE){
+        qDebug() << "c4";
         string msg;
         GLint length;
         funcs->glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &length);
@@ -78,6 +83,7 @@ void GLSLProgram::loadShader(const char* filename, int shaderType)
         } else {
             msg = formatR(_("Shader compilation of \"{}\" failed."), filename);
         }
+        qDebug() << msg;
         funcs->glDeleteShader(shaderHandle);
         throw std::runtime_error(msg);
 
@@ -100,6 +106,7 @@ void GLSLProgram::link()
     }
     
     if(!programHandle){
+        qDebug() << "Program has not been compiled.";
         throw std::runtime_error(_("Program has not been compiled."));
     }
 
@@ -119,6 +126,7 @@ void GLSLProgram::link()
         } else {
             msg = _("Program link failed.");
         }
+        qDebug() << msg;
         throw std::runtime_error(msg);
     }
 

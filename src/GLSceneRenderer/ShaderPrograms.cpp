@@ -538,7 +538,7 @@ void SolidColorExProgram::setVertexColorEnabled(bool on)
 ThickLineProgram::ThickLineProgram(QOpenGLExtraFunctions* f)
     : SolidColorExProgram(
         { { ":/GLSceneRenderer/shader/SolidColor.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/ThickLine.geom", GL_GEOMETRY_SHADER },
+//          { ":/GLSceneRenderer/shader/ThickLine.geom", GL_GEOMETRY_SHADER },
           { ":/GLSceneRenderer/shader/SolidColorEx.frag", GL_FRAGMENT_SHADER } }, f)
 {
     impl = new Impl;
@@ -592,7 +592,7 @@ void ThickLineProgram::setLineWidth(float width)
 SolidPointProgram::SolidPointProgram(QOpenGLExtraFunctions* f)
     : SolidColorProgram(
         { { ":/GLSceneRenderer/shader/SolidPoint.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/SolidPoint.geom", GL_GEOMETRY_SHADER },
+//          { ":/GLSceneRenderer/shader/SolidPoint.geom", GL_GEOMETRY_SHADER },
           { ":/GLSceneRenderer/shader/SolidPoint.frag", GL_FRAGMENT_SHADER } }, f)
 {
     impl = new Impl;
@@ -1137,7 +1137,7 @@ void MaterialLightingProgram::setMinimumTransparency(float t)
 FullLightingProgram::FullLightingProgram(QOpenGLExtraFunctions* f)
     : FullLightingProgram(
         { { ":/GLSceneRenderer/shader/FullLighting.vert", GL_VERTEX_SHADER },
-          { ":/GLSceneRenderer/shader/FullLighting.geom", GL_GEOMETRY_SHADER },
+//          { ":/GLSceneRenderer/shader/FullLighting.geom", GL_GEOMETRY_SHADER },
           { ":/GLSceneRenderer/shader/FullLighting.frag", GL_FRAGMENT_SHADER } }, f)
 {
     
@@ -1214,6 +1214,7 @@ void FullLightingProgram::initialize()
 
 void FullLightingProgram::Impl::initialize(GLSLProgram& glsl)
 {
+#if 0
     useUniformBlockToPassTransformationMatrices = transformBlockBuffer.initialize(glsl, "TransformBlock");
     if(useUniformBlockToPassTransformationMatrices){
         modelViewMatrixIndex = transformBlockBuffer.checkUniformMatrix("modelViewMatrix");
@@ -1259,6 +1260,7 @@ void FullLightingProgram::Impl::initialize(GLSLProgram& glsl)
         auto& shadow = shadowInfos[i];
         f->glUniform1i(shadow.shadowMapLocation, shadowMapTextureTopIndex + i);
     }
+#endif
 }
 
 

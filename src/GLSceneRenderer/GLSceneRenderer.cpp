@@ -5,11 +5,13 @@
 #include <cnoid/SceneCameras>
 #include <cnoid/NullOut>
 
+#include <QtResource>
+
 using namespace std;
 using namespace cnoid;
 
 namespace {
-
+//inline void initMyResource() { Q_INIT_RESOURCE(GLSceneRenderer); }
 int rendererType_ = GLSceneRenderer::GLSL_RENDERER;
 
 }
@@ -38,6 +40,8 @@ public:
 
 void GLSceneRenderer::initializeClass()
 {
+    //initMyResource();
+
     char* CNOID_USE_GLSL = getenv("CNOID_USE_GLSL");
     if(CNOID_USE_GLSL && (strcmp(CNOID_USE_GLSL, "0") == 0)){
         rendererType_ = GL1_RENDERER;

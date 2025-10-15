@@ -1049,18 +1049,31 @@ bool GLSLSceneRenderer::Impl::initializeGLForRendering()
 
     isGLCleared = false;
     try {
+        qDebug() << "initializeGLForRendering(0s)";
         nolightingProgram->initialize();
+        qDebug() << "  (0s) 01";
         solidColorProgram->initialize();
+        qDebug() << "  (0s) 02";
         solidColorExProgram->initialize();
-        solidPointProgram->initialize();
+        qDebug() << "  (0s) 03";
+        solidPointProgram->initialize(); // <-
+        qDebug() << "  (0s) 04";
         thickLineProgram->initialize();
+        qDebug() << "  (0s) 05";
         textProgram->setTextureUnit(ImageTextureUnit);
+        qDebug() << "  (0s) 06";
         textProgram->initialize();
+        qDebug() << "  (0s) 07";
         outlineProgram->initialize();
+        qDebug() << "  (0s) 08";
         minimumLightingProgram->initialize();
+        qDebug() << "  (0s) 09";
         fullLightingProgram->setColorTextureUnit(ImageTextureUnit);
+        qDebug() << "  (0s) 10";
         fullLightingProgram->setShadowMapTextureTopIndex(ShadowMapTextureUnit);
+        qDebug() << "  (0s) 11";
         fullLightingProgram->initialize();
+        qDebug() << "initializeGLForRendering(0e)";
     }
     catch(std::runtime_error& error){
         os() << error.what() << std::endl;
@@ -1068,10 +1081,11 @@ bool GLSLSceneRenderer::Impl::initializeGLForRendering()
         return false;
     }
 
+    qDebug() << "initializeGLForRendering(1s)";
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_DITHER);
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-
+    qDebug() << "initializeGLForRendering(1e)";
 #ifdef CNOID_ENABLE_FREE_TYPE
 # ifdef _WIN32
     freeType.initializeGL("C:\\Windows\\Fonts\\arial.ttf", 100, ImageTextureUnit);

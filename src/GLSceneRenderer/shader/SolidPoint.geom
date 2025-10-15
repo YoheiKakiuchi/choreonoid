@@ -1,4 +1,4 @@
-#version 330
+#version 300 es
 
 // The following option enables to read the depth texture in the geometry shader
 // and skip the fragment shader if the point is behind another object to increase the performance,
