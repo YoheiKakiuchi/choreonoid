@@ -2429,8 +2429,10 @@ bool GLSLSceneRenderer::Impl::loadTextureImage(TextureResource* resource, const 
             GLsizei potWidth = pow(2.0, pw);
             GLsizei potHeight = pow(2.0, ph);
             scaledImageBuf.resize(potWidth * potHeight * image.numComponents());
+#if 0
             gluScaleImage(format, width, height, GL_UNSIGNED_BYTE, image.pixels(),
                           potWidth, potHeight, GL_UNSIGNED_BYTE, &scaledImageBuf.front());
+#endif
             glTexImage2D(GL_TEXTURE_2D, 0, format, potWidth, potHeight, 0, format, GL_UNSIGNED_BYTE, &scaledImageBuf.front());
         }
         resource->isLoaded = true;
