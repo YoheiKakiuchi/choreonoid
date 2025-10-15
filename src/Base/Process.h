@@ -7,6 +7,7 @@
 
 #include <cnoid/Signal>
 #include <QProcess>
+#include <QObject>
 #include "exportdecl.h"
 
 namespace cnoid {
@@ -21,7 +22,7 @@ namespace cnoid {
    For a child process invoked by the start methods of this class, its own process group id
    is given and the signals sent to the main process are not sent to it.
 */
-class CNOID_EXPORT Process : public QProcess
+class CNOID_EXPORT Process : public QObject // public QProcess
 {
     Q_OBJECT
 
@@ -32,7 +33,8 @@ public:
         return sigReadyReadStandardOutput_;
     }
 
-    void start(const QString& program, const QStringList& arguments, OpenMode mode = ReadWrite);
+    //void start(const QString& program, const QStringList& arguments, OpenMode mode = ReadWrite);
+    void start(const QString& program, const QStringList& arguments);
 
 private Q_SLOTS:
     void onReadyReadStandardOutput();

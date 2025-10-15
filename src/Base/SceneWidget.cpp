@@ -11,7 +11,7 @@
 #include "AppConfig.h"
 #include "DisplayValueFormat.h"
 #include "QtEventUtil.h"
-#include <cnoid/GL1SceneRenderer>
+//#include <cnoid/GL1SceneRenderer>
 #include <cnoid/GLSLSceneRenderer>
 #include <cnoid/Selection>
 #include <cnoid/EigenArchive>
@@ -154,7 +154,7 @@ public:
     SgPolygonDrawStylePtr polygonDrawStyle;
     GLSceneRenderer* renderer;
     GLSLSceneRenderer* glslRenderer;
-    GL1SceneRenderer* gl1Renderer;
+    //GL1SceneRenderer* gl1Renderer;
     float lastDevicePixelRatio;
     GLuint prevDefaultFramebufferObject;
     bool isRendering;
@@ -500,9 +500,9 @@ SceneWidget::Impl::Impl(SceneWidget* self)
     glslRenderer = dynamic_cast<GLSLSceneRenderer*>(renderer);
     if(glslRenderer){
         glslRenderer->setLowMemoryConsumptionMode(isLowMemoryConsumptionMode_);
-        gl1Renderer = nullptr;
+        //gl1Renderer = nullptr;
     } else {
-        gl1Renderer = dynamic_cast<GL1SceneRenderer*>(renderer);
+        //gl1Renderer = dynamic_cast<GL1SceneRenderer*>(renderer);
     }
 
     if (!!MessageView::instance()) {
@@ -2742,9 +2742,11 @@ void SceneWidget::setHeadLightEnabled(bool on)
 
 void SceneWidget::setHeadLightLightingFromBack(bool on)
 {
+#if 0
     if(impl->gl1Renderer){
         impl->gl1Renderer->setHeadLightLightingFromBackEnabled(on);
     }
+#endif
 }
 
 

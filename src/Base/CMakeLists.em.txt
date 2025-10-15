@@ -102,7 +102,7 @@ set(sources
   ReferencedObjectSeqItem.cpp
   CoordinateFrameListItem.cpp
   CoordinateFrameItem.cpp
-  ExtCommandItem.cpp
+# ExtCommandItem.cpp
   AbstractTextItem.cpp
   ScriptItem.cpp
   TimeSyncItemEngine.cpp
@@ -254,7 +254,7 @@ set(headers
   ReferencedObjectSeqItem.h
   CoordinateFrameListItem.h
   CoordinateFrameItem.h
-  ExtCommandItem.h
+# ExtCommandItem.h
   AbstractTextItem.h
   ScriptItem.h
   ItemPath.h
@@ -348,18 +348,19 @@ set(sources ${sources} ${qtsources})
 #make_gettext_mofiles(${target} mofiles)
 
 set(libraries
-  PUBLIC CnoidUtil Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg
-  PRIVATE CnoidGLSceneRenderer ${libzip_LIBRARIES})
+  PUBLIC Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGLWidgets Qt6::Svg
+  )
+  # PRIVATE CnoidGLSceneRenderer CnoidBody CnoidUtil ${libzip_LIBRARIES})
 
 #if(UNIX)
 #  set(libraries ${libraries} PRIVATE X11 Xfixes)
 #endif()
 
 #choreonoid_add_library(${target} SHARED ${sources} ${mofiles} ${RC_SRCS} HEADERS ${headers})
-add_library(${target} SHARED ${sources} ${RC_SRCS})
+add_library(${target} ${sources} ${RC_SRCS})
 target_compile_definitions(${target} PUBLIC ${CHOREONOID_QT_COMPILE_DEFINITIONS})
-target_include_directories(${target} PUBLIC /opt/emtest/include/choreonoid-2.3 /usr/include/eigen3 /home/irsl/temp/emscripten_gl/cnoid_rendering/choreonoid/thirdparty/CLI11)
-target_link_directories(${target} PUBLIC /opt/emtest/lib)
+#target_include_directories(${target} PUBLIC /opt/emtest/include/choreonoid-2.3 /usr/include/eigen3 /home/irsl/temp/emscripten_gl/cnoid_rendering/choreonoid/thirdparty/CLI11)
+#target_link_directories(${target} PUBLIC /opt/emtest/lib)
 target_link_libraries(${target} ${libraries})
 
 #file(MAKE_DIRECTORY ${CNOID_BINARY_SHARE_DIR}/icon)

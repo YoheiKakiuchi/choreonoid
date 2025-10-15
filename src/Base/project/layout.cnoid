@@ -24,7 +24,7 @@ views:
     plugin: Base
     class: SceneView
     state: 
-      lightingMode: full
+      lightingMode: minimum
   - 
     id: 7
     plugin: Body
