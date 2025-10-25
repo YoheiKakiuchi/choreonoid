@@ -15,7 +15,11 @@ public:
     void requestBlocking(Connection connection){
         connectionsToBlock.push_back(connection);
     }
+#if defined(EMSCRIPTEN) // HOTFIX
+    void emi_(){ flush(); }
+#else
     void emit(){ flush(); }
+#endif
     
 protected:
     LazySignalBase(int priority);
