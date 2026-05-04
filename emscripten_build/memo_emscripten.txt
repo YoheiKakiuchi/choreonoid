@@ -37,6 +37,11 @@ cmake --build . -t qtbase -t qtdeclarative -t qttools -t qtsvg -t qtimageformats
 
 ## thread (fail qt6.8) TO be checked
 ../qtsrc/configure -qt-host-path $HOST_QT -platform wasm-emscripten -feature-thread  -feature-wasm-simd128 -feature-wasm-exceptions -prefix $PWD/qtbase -submodules qtbase,qttools,qtdeclarative,qtsvg,qtimageformats
+## qttools not required??
+#to be checked
+-shared
+-feature-opengles3
+-device-option QT_EMSCRIPTEN_ASYNCIFY=1
 
 -feature-thread	Multi-threaded Wasm.
 -feature-wasm-simd128	Enable WebAssembly SIMD support.

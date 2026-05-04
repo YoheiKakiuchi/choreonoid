@@ -29,4 +29,6 @@ source emsdk/emsdk_env.sh
 
 ## QT(WASM)
 mkdir emqt_build
-
+cd emqt_build
+../qtsrc/configure -qt-host-path $HOST_QT -platform wasm-emscripten -feature-wasm-simd128 -feature-wasm-exceptions -prefix $PWD/qtbase -submodules qtbase,qttools,qtdeclarative,qtsvg,qtimageformats
+cmake --build . -t qtbase -t qtdeclarative -t qttools -t qtsvg -t qtimageformats --parallel

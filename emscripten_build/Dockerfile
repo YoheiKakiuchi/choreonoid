@@ -11,7 +11,7 @@ RUN if [ ! -e /etc/timezone ]; then \
 RUN apt-get update -q -qq && apt-get install -q -y --no-install-recommends \
     dirmngr \
     gnupg2 ca-certificates lsb-release openssl curl wget aptitude \
-    cmake git make build-essential \
+    cmake git make build-essential ninja-build \
     python3-dev libclang-dev libgl-dev \
     sudo \
     > /dev/null \
@@ -31,6 +31,8 @@ RUN groupadd -g $GID $GROUPNAME && \
     echo $USERNAME:$PASSWORD | chpasswd && \
     echo "$USERNAME   ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
 USER $USERNAME
 WORKDIR /home/$USERNAME/
-
