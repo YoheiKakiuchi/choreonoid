@@ -1,0 +1,26 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d00a4f9f..a09e7e38 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) { }" HAVE_NULLABLE)
+ 
+ test_big_endian(WORDS_BIGENDIAN)
+ 
+-find_package(ZLIB 1.1.2 REQUIRED)
++#find_package(ZLIB 1.1.2 REQUIRED)
+ 
+ if(ENABLE_BZIP2)
+   find_package(BZip2)
+diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+index 1213fa0a..d661859c 100644
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -174,7 +174,7 @@ if(SHARED_LIB_VERSIONNING)
+   set_target_properties(zip PROPERTIES VERSION 5.5 SOVERSION 5)
+ endif()
+ 
+-target_link_libraries(zip PRIVATE ZLIB::ZLIB)
++#target_link_libraries(zip PRIVATE ZLIB::ZLIB)
+ target_include_directories(zip
+   PUBLIC
+   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/lib>
