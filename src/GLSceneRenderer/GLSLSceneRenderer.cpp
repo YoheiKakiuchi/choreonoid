@@ -23,6 +23,10 @@
 #include "gettext.h"
 #include <QOpenGLExtraFunctions>
 
+#if EMSCRIPTEN
+#define GL_MULTISAMPLE 0x809D
+#define glClearDepth glClearDepthf
+#endif
 using namespace std;
 using namespace cnoid;
 
@@ -434,6 +438,8 @@ public:
     bool hasValidNextResourceMap;
     bool isResourceClearRequested;
 
+    vector<char> scaledImageBuf;
+
     bool isTextureEnabled;
     bool isTextureBeingRendered;
     bool isMaterialAmbientNormalizationEnabled;
@@ -499,7 +505,11 @@ public:
     void initializeDepthTexture();
     void clearGL(bool isGLContextActive, bool isCalledFromConstructor, bool isCalledFromDestructor);
     void clearResourceMap();
+#if EMSCRIPTEN
+    bool initializeGL();
+#else
     bool initializeGL(GLADloadfunc getProcAddress);
+#endif
     void checkGPU();
     bool initializeGLForRendering();
     void doRender();
@@ -989,13 +999,59 @@ void GLSLSceneRenderer::Impl::clearResourceMap()
     nextResourceMap = &resourceMaps[1];
 }
 
-
+#if EMSCRIPTEN
+bool GLSLSceneRenderer::initializeGL()
+{
+    return impl->initializeGL();
+}
+#else
 bool GLSLSceneRenderer::initializeGL(GLADloadfunc getProcAddress)
 {
     return impl->initializeGL(getProcAddress);
 }
+#endif
+#if EMSCRIPTEN
+bool GLSLSceneRenderer::Impl::initializeGL()
+{
+    // Removed custom loader (ogl_LoadFunctions) and replaced with Qt functions init
+    if(!glFunctionsInitialized){
+        initializeOpenGLFunctions();
+        glFunctionsInitialized = true;
+    }
 
+    // Query version info via the (now initialized) Qt function table
+    GLint major, minor;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
+    glVersionString  = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+    glVendorString   = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+    glRendererString = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+    glslVersionString= reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
 
+    os() << formatR(_("OpenGL {0}.{1} (GLSL {2}) is available for {3}.\n"),
+                    major, minor,
+                    glslVersionString, self->name());
+    os() << formatR(_("Driver profile: {0} {1} {2}.\n"),
+                    glVendorString, glRendererString, glVersionString);
+
+    char* CNOID_ENABLE_GLSL_SHADOW = getenv("CNOID_ENABLE_GLSL_SHADOW");
+    if(CNOID_ENABLE_GLSL_SHADOW){
+        if(strcmp(CNOID_ENABLE_GLSL_SHADOW, "0") == 0){
+            isShadowCastingAvailable = false;
+            os() << _("Shadow casting is disabled according to the value of CNOID_ENABLE_GLSL_SHADOW.\n");
+        } else {
+            isShadowCastingAvailable = true;
+            os() << _("Shadow casting is enabled according to the value of CNOID_ENABLE_GLSL_SHADOW.\n");
+        }
+    } else {
+        checkGPU();
+    }
+
+    os().flush();
+
+    return initializeGLForRendering();
+}
+#else
 bool GLSLSceneRenderer::Impl::initializeGL(GLADloadfunc getProcAddress)
 {
 #if 0 //EM
@@ -1050,7 +1106,7 @@ bool GLSLSceneRenderer::Impl::initializeGL(GLADloadfunc getProcAddress)
 
     return initializeGLForRendering();
 }
-
+#endif
 
 void GLSLSceneRenderer::Impl::checkGPU()
 {
@@ -1141,6 +1197,7 @@ bool GLSLSceneRenderer::Impl::initializeGLForRendering()
 
     qDebug() << "initializeGLForRendering(1s)";
     glEnable(GL_DEPTH_TEST);
+#if !EMSCRIPTEN
     // Automatic reversed depth buffer detection
     if(!GLSceneRenderer::isStandardDepthBufferForced() && glad_glClipControl){
         isReversedDepthBufferActive = true;
@@ -1160,12 +1217,14 @@ bool GLSLSceneRenderer::Impl::initializeGLForRendering()
         glClearDepth(1.0);
         glDepthFunc(GL_LEQUAL);
     }
+#endif
     glDisable(GL_DITHER);
+#if !EMSCRIPTEN
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-
     if(msaaSamples > 1){
         glEnable(GL_MULTISAMPLE);
     }
+#endif
     qDebug() << "initializeGLForRendering(1e)";
 
 #ifdef CNOID_ENABLE_FREE_TYPE
@@ -1245,7 +1304,7 @@ void GLSLSceneRenderer::Impl::initializeDepthTexture()
         this->glBindTexture(GL_TEXTURE_2D, depthTexture);
 #endif
     }
-
+#if !EMSCRIPTEN
     // Use floating-point depth for reversed depth buffer to maximize precision benefit
     GLenum depthFormat = isReversedDepthBufferActive
         ? GL_DEPTH32F_STENCIL8 : GL_DEPTH24_STENCIL8;
@@ -1331,7 +1390,7 @@ void GLSLSceneRenderer::Impl::initializeDepthTexture()
             throw std::runtime_error(_("Framebuffer is not complete.\n"));
         }
     }
-
+#endif
     needToUpdateDepthTexture = false;
 }
 

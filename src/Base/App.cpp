@@ -216,9 +216,8 @@ App::Impl::Impl(App* self, int& argc, char** argv, const std::string& appName, c
     doQuit = false;
     doListQtStyles = false;
 
+#if !EMSCRIPTEN
     // OpenGL settings
-    GLSceneRenderer::initializeClass();
-#if 0
     QSurfaceFormat glFormat = QSurfaceFormat::defaultFormat();
 
     char* CNOID_USE_GLSL = getenv("CNOID_USE_GLSL");

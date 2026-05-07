@@ -2,7 +2,9 @@
 #define CNOID_BASE_GL_SCENE_RENDERER_H
 
 #include <cnoid/SceneRenderer>
+#if !EMSCRIPTEN
 #include <cnoid/gl.h>
+#endif
 #include "exportdecl.h"
 
 namespace cnoid {
@@ -25,8 +27,11 @@ public:
 
     virtual SgGroup* sceneRoot() override;
     virtual SgGroup* scene() override;
-
+#if EMSCRIPTEN
+    virtual bool initializeGL() = 0;
+#else
     virtual bool initializeGL(GLADloadfunc getProcAddress) = 0;
+#endif
     virtual void flushGL() = 0;
 
     /**

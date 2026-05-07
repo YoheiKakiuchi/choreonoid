@@ -1018,7 +1018,7 @@ void BodyItem::Impl::notifyKinematicStateChange(bool requestFK, bool requestVelF
         }
         if(isDirect){
 #if defined(EMSCRIPTEN) // HOTFIX
-            sigKinematicStateChanged.emit_fixed();
+            sigKinematicStateChanged.emi_hotfix();
 #else
             sigKinematicStateChanged.emit();
 #endif

@@ -50,8 +50,11 @@ class CNOID_EXPORT GLSLSceneRenderer : public GLSceneRenderer
     void dispatchToTransparentPhase(
         ReferencedPtr object, int id,
         const std::function<void(Referenced* object, const Affine3& modelTransform, int id)>& renderingFunction);
-
+#if EMSCRIPTEN
+    virtual bool initializeGL() override;
+#else
     virtual bool initializeGL(GLADloadfunc getProcAddress) override;
+#endif
     virtual void flushGL() override;
     virtual void clearGL() override;
     virtual void setDefaultFramebufferObject(unsigned int id) override;

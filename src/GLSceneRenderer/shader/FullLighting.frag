@@ -6,6 +6,7 @@ precision highp sampler2DShadow; // Shadow Samplerには高い精度を推奨
 
 #define MAX_NUM_LIGHTS 20
 #define MAX_NUM_SHADOWS 2
+
 #define USE_BLINN_PHONG_MODEL 1
 
 #if 0
@@ -47,13 +48,16 @@ struct LightInfo {
     float cutoffExponent;
     vec3 direction;
 };
+
 uniform LightInfo lights[MAX_NUM_LIGHTS];
+
+vec3 reflectionElements[MAX_NUM_LIGHTS];
 
 uniform bool isTextureEnabled;
 uniform sampler2D colorTexture;
 uniform bool isVertexColorEnabled;
-uniform vec3 highlightColor = vec3(1.0, 1.0, 1.0);
-uniform bool isHighlightEnabled = false;
+uniform vec3 highlightColor; // 宣言時の初期化は不可
+uniform bool isHighlightEnabled; // 宣言時の初期化は不可
 uniform vec3 fogColor;
 uniform float maxFogDist;
 uniform float minFogDist;
@@ -65,11 +69,14 @@ uniform vec4 wireframeColor;
 uniform float wireframeWidth;
 
 uniform int numShadows;
+
 struct ShadowInfo {
     int lightIndex;
     sampler2DShadow shadowMap;
 };
+
 uniform ShadowInfo shadows[MAX_NUM_SHADOWS];
+
 uniform bool isShadowAntiAliasingEnabled;
 
 layout(location = 0) out vec4 color4;
@@ -297,9 +304,6 @@ float calcEdgeDistance()
 
     return edgeDistance;
 #else
-// グローバル変数
-vec3 reflectionElements[MAX_NUM_LIGHTS];
-
 void main()
 {
   color4 = vec4(diffuseColor, 1.0);

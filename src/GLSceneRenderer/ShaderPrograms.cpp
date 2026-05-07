@@ -1189,19 +1189,15 @@ void MaterialLightingProgram::Impl::setMaterial(const SgMaterial* material, QOpe
         stateFlag[DIFFUSE_COLOR] = true;
     }
 
-#if 0
     float aintensity = isMaterialAmbientNormalizationEnabled ? 1.0f : material->ambientIntensity();
     if(!stateFlag[AMBIENT_INTENSITY] || ambientIntensity != aintensity){
+#if EMSCRIPTEN
+        func->glUniform1f(ambientIntensityLocation, aintensity);
+#else
         glUniform1f(ambientIntensityLocation, aintensity);
+#endif
         ambientIntensity = aintensity;
         stateFlag[AMBIENT_INTENSITY] = true;
-#else
-    Vector3f acolor = material->ambientIntensity() * dcolor;
-    if(!stateFlag[AMBIENT_COLOR] || ambientColor != acolor){
-        func->glUniform3fv(ambientColorLocation, 1, acolor.data());
-        ambientColor = acolor;
-        stateFlag[AMBIENT_COLOR] = true;
-#endif
     }
 
     const auto& ecolor = material->emissiveColor();
@@ -1826,9 +1822,17 @@ void ShadowMapProgram::initializeShadowMapBuffer()
     // Set appropriate clear depth for shadow map
     // Reversed depth: clear to 0.0 (farthest), Standard depth: clear to 1.0 (farthest)
     if(mainImpl->useReversedDepth){
+#if EMSCRIPTEN
+        glClearDepthf(0.0);
+#else
         glClearDepth(0.0);
+#endif
     } else {
+#if EMSCRIPTEN
+        glClearDepthf(0.0);
+#else
         glClearDepth(1.0);
+#endif
     }
     glClear(GL_DEPTH_BUFFER_BIT);
 }

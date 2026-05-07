@@ -158,3 +158,5 @@ if(ENABLE_PYTHON)
 endif()
 
 add_subdirectory(lua)
+
+endif(${EMSCRIPTEN})

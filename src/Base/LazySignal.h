@@ -16,7 +16,7 @@ public:
         connectionsToBlock.push_back(connection);
     }
 #if defined(EMSCRIPTEN) // HOTFIX
-    void emi_(){ flush(); }
+    void emi_hotfix(){ flush(); }
 #else
     void emit(){ flush(); }
 #endif

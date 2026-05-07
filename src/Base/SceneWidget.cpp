@@ -778,7 +778,11 @@ void SceneWidget::Impl::initializeGL()
     renderer->setDevicePixelRatio(lastDevicePixelRatio);
 
     glContext = context();
+#if EMSCRIPTEN
+    if(renderer->initializeGL()){
+#else
     if(renderer->initializeGL((GLADloadfunc)getProcAddress)){
+#endif
         if(glslRenderer){
             auto& vendor = glslRenderer->glVendorString();
             if(vendor.find("NVIDIA Corporation") != string::npos){

@@ -61,7 +61,7 @@ void detectExecutableFile()
     std::string em_path(cstr);
     std::cout << "em:" << em_path << std::endl;
     filesystem::path path(em_path);
-    path = stdx::filesystem::lexically_normal(path);
+    path = path.lexically_normal();
 
     executableFile_ = em_path + "/choreonoid.js";
     free(cstr);
