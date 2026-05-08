@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Qt6 WebAssembly + Three.js</title>
+    <style>
+        body { margin: 0; display: flex; height: 100vh; overflow: hidden; background-color: #222; }
+        /* 左側の Three.js 領域 */
+        #threejs-container { flex: 1; background-color: #000; }
+        /* 右側の Qt 領域 */
+        #qt-container { width: 300px; display: flex; justify-content: center; align-items: center; background-color: #f0f0f0; }
+        #qtcanvas { outline: none; border: 1px solid #ccc; width: 300px; height: 400px; }
+    </style>
+    <!-- Three.js の読み込み -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="threejs-container"></div>
+    <div id="qt-container">
+        <!-- 修正前: <canvas id="qtcanvas" ...></canvas> -->
+        <!-- 修正後: canvasの代わりにdivを使用し、サイズを指定します -->
+        <div id="qt-screen" style="width: 300px; height: 400px; position: relative;"></div>
+    </div>
+    <!-- 1. Three.js の実装 -->
+    <script>
+        let scene, camera, renderer, cube;
+        let isRotating = true;
+
+        function initThreeJS() {
+            const container = document.getElementById('threejs-container');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // 立方体の作成
+            const geometry = new THREE.BoxGeometry(2, 2, 2);
+            const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+            cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
+
+            // ライトの追加
+            const light = new THREE.PointLight(0xffffff, 1, 100);
+            light.position.set(5, 5, 5);
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x404040));
+
+            camera.position.z = 5;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if (isRotating) {
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.01;
+                }
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // リサイズ対応
+            window.addEventListener('resize', () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+
+        // --- Qt (C++) から呼ばれる関数 ---
+        window.changeCubeColor = function(hexColor) {
+            if (cube) cube.material.color.setHex(hexColor);
+        };
+        window.toggleRotation = function() {
+            isRotating = !isRotating;
+        };
+
+        // 初期化実行
+        initThreeJS();
+    </script>
+    <!-- 2. Qt WebAssembly モジュールのロード -->
+    <!-- アプリ本体のJSファイルを先に読み込む必要があります -->
+    <script src="QtThreeJSSample.js"></script>
+    <script src="qtloader.js"></script>
+    <script>
+        async function initQtApp() {
+            // Qtのエントリ関数を取得
+            const entryFunc = window.QtThreeJSSample_entry || window.createQtAppInstance;
+
+            if (typeof entryFunc !== 'function') {
+                console.error("Qtのエントリ関数が見つかりません。");
+                return;
+            }
+
+            try {
+                await qtLoad({
+                    qt: {
+                        onLoaded: () => { console.log("Qt Application Loaded!"); },
+                        entryFunction: entryFunc,
+                        // ★修正: canvas ではなく div (qt-screen) を渡します
+                        containerElements: [document.getElementById('qt-screen')]
+                    }
+                });
+            } catch (error) {
+                console.error("Qtのロード中にエラーが発生しました:", error);
+            }
+        }
+        initQtApp();
+    </script>
+</body>
+</html>
