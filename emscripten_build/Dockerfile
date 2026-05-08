@@ -12,7 +12,7 @@ RUN apt-get update -q -qq && apt-get install -q -y --no-install-recommends \
     dirmngr \
     gnupg2 ca-certificates lsb-release openssl curl wget aptitude \
     cmake git make build-essential ninja-build \
-    python3-dev libclang-dev libgl-dev \
+    python3-dev libclang-dev libgl-dev gettext libzip-dev libeigen3-dev uuid-dev pkgconf \
     sudo \
     > /dev/null \
     && rm -rf /var/lib/apt/lists/*
