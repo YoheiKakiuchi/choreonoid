@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Qt6 WebAssembly + </title>
+</head>
+<body>
+    <div id="other-container"> Other Container </div>
+    <div id="qt-container">
+        <div id="qt-screen" style="width: 300px; height: 400px; position: relative;"></div>
+    </div>
+    <!-- 2. Qt WebAssembly モジュールのロード -->
+    <!-- アプリ本体のJSファイルを先に読み込む必要があります -->
+    <script src="filemain.js"></script>
+    <script src="qtloader.js"></script>
+    <script>
+        async function initQtApp() {
+            // Qtのエントリ関数を取得
+            const entryFunc = window.filemain_entry || window.createQtAppInstance;
+
+            if (typeof entryFunc !== 'function') {
+                console.error("Qtのエントリ関数が見つかりません。");
+                return;
+            }
+
+            try {
+                await qtLoad({
+                    qt: {
+                        onLoaded: () => { console.log("Qt Application Loaded!"); },
+                        entryFunction: entryFunc,
+                        // ★修正: canvas ではなく div (qt-screen) を渡します
+                        containerElements: [document.getElementById('qt-screen')]
+                    }
+                });
+            } catch (error) {
+                console.error("Qtのロード中にエラーが発生しました:", error);
+            }
+        }
+        initQtApp();
+    </script>
+</body>
+</html>
