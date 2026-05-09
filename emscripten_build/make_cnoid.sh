@@ -19,18 +19,18 @@ cd ${WKDIR}/build_zlib
 git checkout -b v1.3.1 v1.3.1
 mkdir -p ${WKDIR}/build_zlib/build
 emcmake cmake ${WKDIR}/build_zlib -DCMAKE_INSTALL_PREFIX=${INSTALL_EM_DIR} -DCMAKE_C_FLAGS="${_MY_CFLAGS}" -DCMAKE_CXX_FLAGS="${_MY_CFLAGS}"
-emmake make install
-# ln -s /userdir/em_lib/include /userdir/em_lib/include/../zlib-1.2.13
+emmake make install -j$(nproc)
+ln -s ${INSTALL_EM_DIR}/include ${INSTALL_EM_DIR}/include/../zlib-1.2.13
 
 ##libzip
 cd ${WKDIR}
 git clone https://github.com/nih-at/libzip.git build_libzip
 cd ${WKDIR}/build_libzip
 git checkout -b v1.9.2 v1.9.2
-patch -p1 < ${CURDIR}/libzip.em.patch
+patch -p1 < ${ORGDIR}/emscripten_build/libzip.em.patch
 mkdir -p ${WKDIR}/build_libzip/build; cd ${WKDIR}/build_libzip/build
 emcmake cmake ${WKDIR}/build_libzip -DBUILD_TOOLS=OFF -DBUILD_REGRESS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_DOC=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS="-I${INSTALL_EM_DIR}/include ${_MY_CFLAGS}" -DCMAKE_INSTALL_PREFIX=${INSTALL_EM_DIR}
-emmake make install
+emmake make install -j$(nproc)
 
 #
 export PATH=$PATH:${ORGDIR}/qt_lib/bin
@@ -46,13 +46,13 @@ mkdir -p ${ORGDIR}/build
 cd ${WKDIR}
 mkdir -p ${WKDIR}/build_fmt; cd ${WKDIR}/build_fmt
 emcmake cmake ${ORGDIR}/thirdparty/fmt-11.0.0 -DFMT_DOC=OFF -DFMT_TEST=OFF -DCMAKE_INSTALL_PREFIX=${INSTALL_EM_DIR} -DCMAKE_C_FLAGS="${_MY_CFLAGS}" -DCMAKE_CXX_FLAGS="${_MY_CFLAGS}"
-emmake make install
+emmake make install -j$(nproc)
 
 #
 cd ${WKDIR}
 mkdir -p ${WKDIR}/build_yaml; cd ${WKDIR}/build_yaml
 emcmake cmake ${ORGDIR}/thirdparty/libyaml-0.2.5 -DCMAKE_INSTALL_PREFIX=${INSTALL_EM_DIR} -DCMAKE_C_FLAGS="${_MY_CFLAGS}" -DCMAKE_CXX_FLAGS="${_MY_CFLAGS}"
-emmake make
+emmake make -j$(nproc)
 cp libyaml.a ${INSTALL_EM_DIR}/lib
 cp -r ${ORGDIR}/thirdparty/libyaml-0.2.5/include/* ${INSTALL_EM_DIR}/include
 
@@ -60,14 +60,14 @@ cp -r ${ORGDIR}/thirdparty/libyaml-0.2.5/include/* ${INSTALL_EM_DIR}/include
 cd ${WKDIR}
 mkdir -p ${WKDIR}/build_jpeg; cd ${WKDIR}/build_jpeg
 emcmake cmake ${ORGDIR}/thirdparty/jpeg-9c -DCMAKE_INSTALL_PREFIX=${INSTALL_EM_DIR} -DCMAKE_C_FLAGS="${_MY_CFLAGS}" -DCMAKE_CXX_FLAGS="${_MY_CFLAGS}"
-emmake make
+emmake make -j$(nproc)
 cp libjpeg.a ${INSTALL_EM_DIR}/lib
 (cd ${ORGDIR}/thirdparty/jpeg-9c; cp jpeglib.h jconfig.h jmorecfg.h ${INSTALL_EM_DIR}/include)
 
 
 mkdir -p ${WKDIR}/build_png; cd ${WKDIR}/build_png
 emcmake cmake ${ORGDIR}/thirdparty/lpng1232 -DCMAKE_C_FLAGS="-I${INSTALL_EM_DIR}/include ${_MY_CFLAGS}" -DCMAKE_INSTALL_PREFIX=${INSTALL_EM_DIR}
-emmake make
+emmake make -j$(nproc)
 cp libpng_cnoid.a ${INSTALL_EM_DIR}/lib/libpng.a
 (cd ${ORGDIR}/thirdparty/lpng1232; cp png.h pngconf.h ${INSTALL_EM_DIR}/include)
 
