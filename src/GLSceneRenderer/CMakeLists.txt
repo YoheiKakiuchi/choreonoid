@@ -1,6 +1,7 @@
 set(sources
   GLSceneRenderer.cpp
   GL1SceneRenderer.cpp
+  NullSceneRenderer.cpp
   GLSLProgram.cpp
   ShaderPrograms.cpp
   GLSLSceneRenderer.cpp
@@ -10,6 +11,7 @@ set(sources
 set(headers
   GLSceneRenderer.h
   GL1SceneRenderer.h
+  NullSceneRenderer.h
   GLSLProgram.h
   ShaderPrograms.h
   GLSLSceneRenderer.h

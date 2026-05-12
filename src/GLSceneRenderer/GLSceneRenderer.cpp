@@ -1,6 +1,7 @@
 #include "GLSceneRenderer.h"
 #include "GL1SceneRenderer.h"
 #include "GLSLSceneRenderer.h"
+#include "NullSceneRenderer.h"
 #include <cnoid/SceneDrawables>
 #include <cnoid/SceneCameras>
 #include <cnoid/NullOut>
@@ -54,6 +55,8 @@ GLSceneRenderer* GLSceneRenderer::create(SgGroup* root)
 {
     if(rendererType_ == GL1_RENDERER){
         return new GL1SceneRenderer(root);
+    } else if(rendererType_ == NO_RENDERER){
+        return new NullSceneRenderer(root);
     } else {
         return new GLSLSceneRenderer(root);
     }

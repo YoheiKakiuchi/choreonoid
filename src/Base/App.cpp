@@ -219,8 +219,11 @@ App::Impl::Impl(App* self, int& argc, char** argv, const std::string& appName, c
     // OpenGL settings
     QSurfaceFormat glFormat = QSurfaceFormat::defaultFormat();
 
+    char* CNOID_NO_OPENGL_SCENE_RENDERER = getenv("CNOID_NO_OPENGL_SCENE_RENDERER");
     char* CNOID_USE_GLSL = getenv("CNOID_USE_GLSL");
-    if(CNOID_USE_GLSL && strcmp(CNOID_USE_GLSL, "0") == 0){
+    if(CNOID_NO_OPENGL_SCENE_RENDERER && strcmp(CNOID_NO_OPENGL_SCENE_RENDERER, "1") == 0){
+        GLSceneRenderer::setRendererType(GLSceneRenderer::NO_RENDERER);
+    } else if(CNOID_USE_GLSL && strcmp(CNOID_USE_GLSL, "0") == 0){
         // GL1 mode: OpenGL 1.5 fixed
         glFormat.setVersion(1, 5);
         GLSceneRenderer::setRendererType(GLSceneRenderer::GL1_RENDERER);
